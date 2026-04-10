@@ -3,21 +3,22 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"golang.org/x/text/language"
-	"gopkg.in/yaml.v3"
 	"maps"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/BurntSushi/toml"
+	"golang.org/x/text/language"
+	"gopkg.in/yaml.v3"
 )
 
 type bundleEngine int
 
 const (
 	jsonEngine bundleEngine = iota
-	tomlEngine bundleEngine = iota
-	yamlEngine bundleEngine = iota
+	tomlEngine
+	yamlEngine
 )
 
 type Bundle struct {
@@ -42,17 +43,13 @@ func (b *Bundle) loadResources(file string, lang language.Tag, engine bundleEngi
 	}
 
 	messages := make(map[string]string)
-
 	switch engine {
 	case jsonEngine:
 		err = json.Unmarshal(content, &messages)
-		break
 	case tomlEngine:
 		err = toml.Unmarshal(content, &messages)
-		break
 	case yamlEngine:
 		err = yaml.Unmarshal(content, &messages)
-		break
 	default:
 		panic(fmt.Sprintf("Unknown bundle backend engine: %d", engine))
 	}
@@ -66,7 +63,6 @@ func (b *Bundle) loadResources(file string, lang language.Tag, engine bundleEngi
 	} else {
 		maps.Copy(b.messages[lang], messages)
 	}
-
 }
 
 func (b *Bundle) loadFolder(dir string) {
@@ -74,6 +70,7 @@ func (b *Bundle) loadFolder(dir string) {
 	if err != nil {
 		panic(err)
 	}
+
 	for _, file := range files {
 		if file.IsDir() {
 			b.loadFolder(path.Join(dir, file.Name()))
@@ -88,19 +85,14 @@ func (b *Bundle) loadFolder(dir string) {
 		switch path.Ext(file.Name()) {
 		case ".yaml", ".yml":
 			b.loadResources(path.Join(dir, file.Name()), lang, yamlEngine)
-			break
 		case ".json":
 			b.loadResources(path.Join(dir, file.Name()), lang, jsonEngine)
-			break
 		case ".toml":
 			b.loadResources(path.Join(dir, file.Name()), lang, tomlEngine)
-			break
 		default:
 			panic(fmt.Sprintf("unsupported file extension: %s", file.Name()))
 		}
-
 	}
-
 }
 
 func (b *Bundle) Load() {
@@ -114,6 +106,7 @@ func (b *Bundle) GetWithLocale(locale language.Tag, id string, replacers ...any)
 		}
 		return fmt.Sprint(message[id])
 	}
+
 	return id
 }
 
@@ -122,7 +115,6 @@ func (b *Bundle) Get(id string, replacers ...any) string {
 	if message == "" {
 		message = b.GetWithLocale(b.defaultLocale, id, replacers...)
 	}
-
 	return message
 }
 
