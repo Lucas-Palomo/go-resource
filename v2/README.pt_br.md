@@ -2,91 +2,60 @@
 
 [English](./README.md) | [Português (Brasil)](./README.pt_br.md)
 
-**i18n em estilo ResourceBundle para Go** — uma reescrita mais moderna, segura e extensível do `go-resource`.
+`go-resource/v2` é a linha major estável para desenvolvimento novo.
 
-Este módulo é a **próxima major** do projeto. Ele representa a direção de longo prazo da biblioteca e é o alvo recomendado de migração para quem excedeu os limites da v1.
+Ela preserva a ideia inspirada em ResourceBundle, mas melhora o contrato nos pontos que realmente importam para uma biblioteca Go reutilizável: tratamento de erro, modelo de recursos, pontos de extensão e abstração de filesystem.
 
-> Até que `v2.0.0` seja tagueada, consumidores que usam apenas releases estáveis devem permanecer na `v1.0.1`.
+## Status de release
 
-## Path do módulo
+- versão estável atual: `v2.0.0`
+- path do módulo: `github.com/Lucas-Palomo/go-resource/v2`
+- público recomendado: projetos novos e migrações estruturadas a partir da v1
+
+## Instalação
+
+```bash
+go get github.com/Lucas-Palomo/go-resource/v2@v2.0.0
+```
 
 ```go
 import resource "github.com/Lucas-Palomo/go-resource/v2"
 ```
 
-## Instalação
+## Recursos principais
 
-Depois que a primeira release da v2 for publicada:
-
-```bash
-go get github.com/Lucas-Palomo/go-resource/v2@latest
-```
-
-## Por que a v2 existe
-
-A v1 foi útil para projetos pequenos, mas tinha limites estruturais:
-
-- falhas de carregamento eram historicamente expostas por `panic`
-- walking de diretórios, parsing, carregamento, fallback e lookup estavam fortemente acoplados
-- não havia suporte a `fs.FS` / `embed.FS`
-- chaves ausentes e duplicadas não tinham política explícita
-- objetos aninhados não eram um modelo de recurso de primeira classe
-
-A v2 corrige o contrato em vez de apenas trocar nomes.
-
-## O que a v2 adiciona
-
-- tratamento explícito de erro
+- erros explícitos de carregamento
 - `LoadDir(root string)` e `LoadFS(fsys fs.FS, root string)`
 - suporte a `fs.FS` e `embed.FS`
-- decoders para JSON, YAML, TOML e arquivos `.properties` no estilo Java
-- flatten de estruturas aninhadas para notação por ponto
-- namespacing por diretório e por segmentos do nome do arquivo
-- resolução previsível de fallback
-- políticas configuráveis para chaves ausentes e duplicadas
+- JSON, YAML, TOML e `.properties` no estilo Java
+- objetos aninhados achatados em notação por ponto
+- composição de namespace a partir de pastas e segmentos do nome do arquivo
+- cadeia de fallback de locale baseada em `golang.org/x/text/language`
+- estratégias configuráveis para chave ausente e chave duplicada
+- helpers de runtime como `Has`, `HasFor`, `Locales`, `Catalog` e `Reset`
+- extensão de decoder via `RegisterDecoder`
 - leituras thread-safe
-- helpers como `Has`, `HasFor` e `Reset`
 
-## Convenções de arquivos de recurso
+## Convenções de recursos
 
-### Namespace por pastas
+### Namespace por pasta
 
 ```text
-/resources
-  /errors
+resources/
+  errors/
     en.json
-    pt_BR.json
-  /messages
-    /checkout
-      en.yaml
+  messages/
+    checkout/
       pt_BR.yaml
 ```
 
 ### Namespace por nome de arquivo
 
 ```text
-/resources
-  en.errors.json
-  pt_BR.errors.json
+resources/
   en.messages.checkout.toml
+  pt_BR.messages.checkout.toml
 ```
-
-### Arquivos `.properties` no estilo Java
-
-```properties
-title = Checkout
-checkout.hello = Hello, %s
-errors.validation.required: Required
-checkout.description = Confirm your order  before leaving
-welcome = Olá
-```
-
-Recursos suportados em `.properties`:
-
-- separadores: `=`, `:`, ou whitespace
-- comentários com `#` ou `!`
-- continuação de linha com barra invertida no final
-- escapes como `\t`, `\n` e `\uXXXX`
 
 ### Objetos aninhados
 
@@ -100,13 +69,18 @@ Recursos suportados em `.properties`:
 }
 ```
 
-vira:
+Vira `checkout.button.confirm`.
 
-```text
-checkout.button.confirm
-```
+## `.properties` no estilo Java
 
-## Exemplo
+Comportamentos suportados:
+
+- separadores: `=`, `:`, ou whitespace
+- comentários com `#` ou `!`
+- continuação de linha com barra invertida no final
+- escapes como `\t`, `\n`, `\r`, `\f` e `\uXXXX`
+
+## Quick start
 
 ```go
 package main
@@ -129,23 +103,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(bundle.Get("checkout.title"))
+	fmt.Println(bundle.Get("title"))
 	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
 	fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
 
-Exemplos executáveis estão disponíveis em:
-
-- [`./examples/basic`](./examples/basic)
-- [`./examples/properties`](./examples/properties)
-
-## Docs
+## Documentação
 
 - [Referência da API](./docs/api-reference.pt_br.md)
 - [Notas de arquitetura](./docs/architecture.pt_br.md)
-- [Guia de migração](./docs/migration-v1-to-v2.pt_br.md)
-
-## Relação com a raiz do repositório
-
-A raiz do repositório mantém a linha de manutenção da v1 por compatibilidade. A nova major vive em `/v2` para preservar o semantic import versioning do Go.
+- [Migração da v1](./docs/migration-v1-to-v2.pt_br.md)
+- [Changelog da v2](./CHANGELOG.pt_br.md)

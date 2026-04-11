@@ -8,121 +8,87 @@
 import "github.com/Lucas-Palomo/go-resource/pkg/resource"
 ```
 
-## Propósito
+## O que é a v1
 
-A linha v1 é a API com foco em compatibilidade para consumidores que já usam o pacote original. Na `v1.0.1`, a principal melhoria não é uma reescrita. É uma correção de contrato: falhas de carregamento não derrubam mais o processo por padrão.
+A v1 é a linha de `go-resource` com foco em compatibilidade.
 
-## Tipo principal
+Ela é intencionalmente pequena:
 
-### `type Bundle`
+- carregamento baseado em filesystem
+- catálogos planos de string
+- troca simples de locale
+- formatação via `fmt.Sprintf`
 
-Estrutura central da biblioteca. Ela armazena:
+A partir da `v1.0.1`, a linha é estável e não usa mais `panic` como comportamento padrão de carregamento.
 
-- a raiz de recursos configurada
-- os catálogos por locale carregados em memória
-- a locale atual
-- a locale fallback default
-- o último erro de carregamento capturado pelas APIs de compatibilidade
+## Formatos suportados
 
-## Construção
+- JSON
+- YAML / YML
+- TOML
+
+A v1 **não** suporta:
+
+- arquivos `.properties` no estilo Java
+- objetos de recurso aninhados
+- composição de namespace a partir de diretórios ou de segmentos pontuados do nome do arquivo
+
+## Modelo de recursos
+
+O caminho de decode da v1 carrega arquivos em `map[string]string`.
+
+Consequências práticas:
+
+- cada valor deve ser string
+- as chaves permanecem exatamente como foram declaradas no arquivo
+- a estrutura de pastas apenas organiza arquivos em disco
+- um nome como `en.errors.json` é aceito porque o primeiro segmento é a locale, mas `errors` não vira parte da chave em runtime
+
+## Construção e carregamento
 
 ### `func NewBundle(resourcesFolder string, defaultLocale language.Tag) *Bundle`
 
-Cria um novo bundle para a raiz de recursos informada e para a locale default.
-
-Comportamento na `v1.0.1`:
-
-- inicializa `currentLocale` com a locale default
-- começa com catálogo em memória vazio
-- preserva compatibilidade com o código de construção já existente
-
-## Carregamento
+Cria um bundle para uma pasta raiz e uma locale default.
 
 ### `func (b *Bundle) Load()`
 
-Método legado de carregamento compatível com a API anterior.
-
-Na `v1.0.1`, esse método não usa mais `panic`. Em vez disso, ele registra internamente o último erro de carregamento. Chame `Err()` logo após `Load()` quando precisar inspecionar a falha.
-
-```go
-bundle.Load()
-if err := bundle.Err(); err != nil {
-	return err
-}
-```
+Método de compatibilidade. Na `v1.0.1`, não entra mais em `panic` por padrão. Ele armazena internamente o último erro de carregamento.
 
 ### `func (b *Bundle) LoadWithError() error`
 
-Método preferível para código novo.
-
-Ele retorna diretamente erros de filesystem, parsing de locale, decoder ou formato não suportado:
-
-```go
-if err := bundle.LoadWithError(); err != nil {
-	return err
-}
-```
+Método preferível para código novo na v1. Retorna erros de carregamento diretamente.
 
 ### `func (b *Bundle) Err() error`
 
 Retorna o último erro de carregamento capturado por `Load()` ou `LoadWithError()`.
 
-## Lookup
+## API de lookup
+
+### `func (b *Bundle) SetLocale(locale language.Tag)`
+
+Altera a locale atual.
 
 ### `func (b *Bundle) Get(id string, replacers ...any) string`
-
-Resolve uma chave usando a locale atual.
 
 Ordem de resolução na `v1.0.1`:
 
 1. locale atual
 2. locale default
-3. retorna a própria chave se ainda não houver resolução
+3. retornar a própria chave se continuar sem resolução
 
 ### `func (b *Bundle) GetWithLocale(locale language.Tag, id string, replacers ...any) string`
 
-Resolve a chave para uma locale específica sem alterar o estado do bundle.
+Resolve uma chave para uma locale específica sem alterar o estado do bundle.
 
-Se a chave não existir, a própria chave é retornada.
+## Valores de erro
 
-## Configuração em runtime
+- `ErrUnknownBundleEngine`
+- `ErrUnsupportedFileExt`
+- `ErrInvalidResourceFileName`
 
-### `func (b *Bundle) SetLocale(locale language.Tag)`
+## Notas de comportamento
 
-Troca a locale atual usada por `Get()`.
-
-## Formatos suportados
-
-- `.json`
-- `.yaml`
-- `.yml`
-- `.toml`
-
-## Regra de nome de arquivo
-
-A v1 espera que cada arquivo de recurso use a locale no primeiro segmento do nome do arquivo.
-
-Exemplos:
-
-- `en.json`
-- `pt_BR.yaml`
-- `es.toml`
-
-Diretórios aninhados são permitidos, mas a locale continua sendo extraída do nome do arquivo.
-
-## Modelo de erro na `v1.0.1`
-
-Casos típicos de falha de carregamento:
-
-- diretório ou arquivo ilegível
-- locale inválida no nome do arquivo
-- extensão não suportada
-- payload JSON / YAML / TOML inválido
-
-O ponto importante é que essas falhas agora voltam como `error`, em vez de encerrar a aplicação por meio de `panic`.
-
-## Recomendação
-
-Continue na v1 quando compatibilidade for mais importante que mudança arquitetural.
-
-Para sistemas novos ou evolução mais profunda, migre para `/v2`.
+- chaves duplicadas não são expostas como política pública configurável
+- arquivos carregados mais tarde podem sobrescrever chaves anteriores na mesma locale
+- o pacote é mais adequado para cenários menores e mais simples
+- migre para a v2 quando precisar de objetos aninhados, `.properties`, `fs.FS` ou políticas explícitas

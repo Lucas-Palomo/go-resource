@@ -2,37 +2,44 @@
 
 [English](./README.md) | [Português (Brasil)](./README.pt_br.md)
 
-**Internacionalização para Go inspirada em ResourceBundle.**
+Internacionalização baseada em arquivos para Go, inspirada no `ResourceBundle` do Java, mas adaptada para um uso idiomático em Go.
 
-`go-resource` é uma biblioteca de i18n baseada em arquivos para Go, inspirada no Java ResourceBundle e adaptada para um fluxo idiomático no ecossistema Go. Ela permite carregar labels, mensagens e erros localizados a partir de arquivos de recurso, em vez de espalhar textos por handlers, services e código de domínio.
+Este repositório contém **duas linhas de módulo** e **três tags publicadas**:
 
-Atualmente, este repositório carrega **duas linhas**:
+| Tag | Linha | Path do módulo | Data | Status |
+|---|---|---|---|---|
+| `v1.0.0` | v1 | `github.com/Lucas-Palomo/go-resource` | 2024-08-20 | Release histórica, retraída |
+| `v1.0.1` | v1 | `github.com/Lucas-Palomo/go-resource` | 2026-04-11 | Release estável de manutenção |
+| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | Primeira release estável da v2 |
 
-- **v1** na raiz do repositório  
-  Linha estável de manutenção para consumidores existentes. Release estável atual: **`v1.0.1`**.
-- **v2** em [`/v2`](./v2)  
-  Próxima major do projeto. Ela contém a reescrita arquitetural e a nova API.
+## O que este projeto faz
 
-> `v1.0.0` foi retraída. Use `v1.0.1+` para a linha legada.
->
-> Se você consome apenas releases tagueadas, permaneça na **v1.0.1** até que **`v2.0.0`** seja publicada.
+`go-resource` carrega mensagens localizadas a partir de arquivos de recurso, em vez de espalhar textos por handlers, services e lógica de domínio.
+
+Formatos suportados ao longo do repositório:
+
+- JSON
+- YAML / YML
+- TOML
+- `.properties` no estilo Java na v2
 
 ## Qual linha você deve usar?
 
 ### Use a v1 quando
 
 - você já importa `github.com/Lucas-Palomo/go-resource/pkg/resource`
-- você quer o menor custo de migração possível
-- você só precisa da API original com as correções de estabilidade da `v1.0.1`
+- quer o menor custo de migração possível
+- precisa apenas da API original com as correções de estabilidade da `v1.0.1`
 
 ### Use a v2 quando
 
-- você está começando trabalho novo ou uma migração estruturada
-- precisa de tratamento explícito de erro
-- quer suporte a `fs.FS` / `embed.FS`
+- está começando trabalho novo
+- quer tratamento explícito de erro
+- precisa de `fs.FS` ou `embed.FS`
 - quer objetos aninhados achatados em notação por ponto
-- precisa de políticas configuráveis para chaves ausentes e duplicadas
-- quer suporte nativo a arquivos `.properties` no estilo Java
+- quer composição de namespace por diretório e por segmentos do nome do arquivo
+- precisa de políticas configuráveis para chaves ausentes ou duplicadas
+- quer suporte nativo a `.properties`
 
 ## Layout do repositório
 
@@ -40,7 +47,8 @@ Atualmente, este repositório carrega **duas linhas**:
 .
 ├── go.mod                    # módulo v1: github.com/Lucas-Palomo/go-resource
 ├── pkg/resource              # pacote v1
-├── docs                      # documentação da raiz/v1
+├── docs                      # documentação focada na v1
+├── examples                  # recursos de exemplo da v1
 └── v2                        # módulo v2: github.com/Lucas-Palomo/go-resource/v2
 ```
 
@@ -52,27 +60,81 @@ Atualmente, este repositório carrega **duas linhas**:
 go get github.com/Lucas-Palomo/go-resource@v1.0.1
 ```
 
-Caminho de import:
-
 ```go
 import "github.com/Lucas-Palomo/go-resource/pkg/resource"
 ```
 
 ### v2
 
-Depois que a primeira tag da v2 for publicada:
-
 ```bash
-go get github.com/Lucas-Palomo/go-resource/v2@latest
+go get github.com/Lucas-Palomo/go-resource/v2@v2.0.0
 ```
-
-Caminho de import:
 
 ```go
 import resource "github.com/Lucas-Palomo/go-resource/v2"
 ```
 
-## Quick start da v1
+## Modelo de recursos por linha
+
+### v1
+
+A v1 carrega catálogos **planos do tipo `map[string]string`** a partir de arquivos JSON, YAML e TOML.
+
+Consequências importantes:
+
+- os valores precisam ser strings
+- objetos aninhados não são um modelo de recurso suportado
+- diretórios servem apenas para organização física
+- segmentos extras no nome do arquivo, como `en.errors.json`, **não** viram namespace de chave
+
+Exemplo:
+
+```text
+resources/
+  errors/
+    en.json
+  messages/
+    pt_BR.yaml
+```
+
+Isso é válido na v1, mas as chaves continuam exatamente como foram declaradas dentro dos arquivos.
+
+### v2
+
+A v2 carrega arquivos de recurso para **catálogos planos em runtime**, com regras de entrada mais ricas:
+
+- objetos aninhados são achatados em notação por ponto
+- nomes de diretório viram segmentos de namespace
+- segmentos extras do nome do arquivo viram segmentos de namespace
+- `.properties` é suportado nativamente
+- escalares como strings, números e booleanos são convertidos para string no catálogo final
+
+Exemplo:
+
+```text
+resources/
+  errors/
+    en.json
+  en.messages.checkout.toml
+```
+
+Com:
+
+```json
+{
+  "validation": {
+    "required": "Required field"
+  }
+}
+```
+
+Produz:
+
+```text
+errors.validation.required
+```
+
+## Quick start: v1
 
 ```go
 package main
@@ -99,7 +161,7 @@ func main() {
 }
 ```
 
-## Quick start da v2
+## Quick start: v2
 
 ```go
 package main
@@ -122,75 +184,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(bundle.Get("checkout.title"))
+	fmt.Println(bundle.Get("title"))
 	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
 	fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
 
-## Organização dos recursos
-
-As duas linhas aceitam estruturas semânticas de diretórios como:
-
-```text
-/resources
-  /errors
-    en.json
-    pt_BR.json
-  /messages
-    /checkout
-      en.yaml
-      pt_BR.yaml
-```
-
-O projeto também aceita namespace por nome de arquivo:
-
-```text
-/resources
-  en.errors.json
-  pt_BR.errors.json
-  en.messages.checkout.toml
-```
-
-Na v2, objetos aninhados são achatados automaticamente. Exemplo:
-
-```json
-{
-  "checkout": {
-    "button": {
-      "confirm": "Confirm"
-    }
-  }
-}
-```
-
-vira:
-
-```text
-checkout.button.confirm
-```
-
-## Formatos suportados
-
-### v1
-
-- JSON
-- YAML / YML
-- TOML
-
-### v2
-
-- JSON
-- YAML / YML
-- TOML
-- `.properties` no estilo Java
-
 ## Documentação
 
-### v1
+### Repositório e v1
 
 - [Estratégia de versionamento e release](./docs/versioning-strategy.pt_br.md)
-- [Referência da API da v1](./docs/v1-reference.pt_br.md)
+- [Referência da v1](./docs/v1-reference.pt_br.md)
+- [Changelog da raiz](./CHANGELOG.pt_br.md)
 
 ### v2
 
@@ -198,6 +204,7 @@ checkout.button.confirm
 - [Referência da API da v2](./v2/docs/api-reference.pt_br.md)
 - [Notas de arquitetura da v2](./v2/docs/architecture.pt_br.md)
 - [Migração da v1 para a v2](./v2/docs/migration-v1-to-v2.pt_br.md)
+- [Changelog da v2](./v2/CHANGELOG.pt_br.md)
 
 ## Licença
 

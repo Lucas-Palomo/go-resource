@@ -8,173 +8,74 @@
 import resource "github.com/Lucas-Palomo/go-resource/v2"
 ```
 
-## Main types
+## Main public types
 
-### `type Bundle`
-
-Core structure of the library. It stores loaded catalogs by locale, registered decoders, current locale state, fallback configuration, and lookup strategies.
-
-### `type Decoder`
-
-Contract used to support new file formats.
-
-```go
-type Decoder interface {
-	Decode(data []byte) (map[string]any, error)
-}
-```
-
-### `type DecoderFunc`
-
-Adapter that allows a decoder to be registered from a function.
-
-### `type MissingKeyStrategy`
-
-Controls what happens when a key cannot be resolved.
-
-Available values:
-
-- `ReturnKeyOnMissing`
-- `ReturnEmptyOnMissing`
-- `ErrorOnMissing`
-
-### `type DuplicateKeyStrategy`
-
-Controls what happens when the same logical key is declared more than once.
-
-Available values:
-
-- `OverwriteOnDuplicate`
-- `ErrorOnDuplicate`
+- `Bundle`
+- `Catalog`
+- `Decoder`
+- `DecoderFunc`
+- `MissingKeyStrategy`
+- `DuplicateKeyStrategy`
 
 ## Construction
 
 ### `func New(opts ...Option) *Bundle`
 
-Creates a new bundle with built-in decoders for:
+Defaults:
 
-- JSON
-- YAML / YML
-- TOML
-- Java-style `.properties`
+- fallback locale: `language.English`
+- current locale: fallback locale when not explicitly set
+- missing-key strategy: `ReturnKeyOnMissing`
+- duplicate-key strategy: `ErrorOnDuplicate`
 
-Typical initialization:
+Built-in decoders:
 
-```go
-bundle := resource.New(
-	resource.WithFallbackLocale(language.English),
-	resource.WithLocale(language.MustParse("pt-BR")),
-)
-```
+- `.json`
+- `.yaml`
+- `.yml`
+- `.toml`
+- `.properties`
 
 ## Options
 
-### `func WithFallbackLocale(locale language.Tag) Option`
-
-Sets the fallback locale consulted by lookup operations.
-
-### `func WithLocale(locale language.Tag) Option`
-
-Sets the initial locale used by `Get`, `Lookup`, `Has`, and related helpers.
-
-### `func WithMissingKeyStrategy(strategy MissingKeyStrategy) Option`
-
-Defines the missing-key policy.
-
-### `func WithDuplicateKeyStrategy(strategy DuplicateKeyStrategy) Option`
-
-Defines the duplicate-key policy.
+- `WithFallbackLocale(locale language.Tag)`
+- `WithLocale(locale language.Tag)`
+- `WithMissingKeyStrategy(strategy MissingKeyStrategy)`
+- `WithDuplicateKeyStrategy(strategy DuplicateKeyStrategy)`
 
 ## Loading
 
-### `func (b *Bundle) LoadDir(root string) error`
+- `LoadDir(root string) error`
+- `LoadFS(fsys fs.FS, root string) error`
+- `RegisterDecoder(ext string, decoder Decoder)`
 
-Loads resources from a directory in the operating system filesystem.
+Loading rules:
 
-```go
-if err := bundle.LoadDir("./resources"); err != nil {
-	return err
-}
-```
-
-### `func (b *Bundle) LoadFS(fsys fs.FS, root string) error`
-
-Loads resources from any `fs.FS`, including `embed.FS`.
+- the first filename segment is the locale
+- directory names become namespace segments
+- remaining filename segments become namespace segments
+- nested objects are flattened into dot notation
 
 ## Lookup
 
-### `func (b *Bundle) Lookup(key string, args ...any) (string, error)`
+- `Lookup(key string, args ...any) (string, error)`
+- `LookupFor(locale language.Tag, key string, args ...any) (string, error)`
+- `Get(key string, args ...any) string`
+- `GetFor(locale language.Tag, key string, args ...any) string`
+- `Has(key string) bool`
+- `HasFor(locale language.Tag, key string) bool`
 
-Preferred API for serious usage. Resolves a key using the current locale and the fallback chain, returning an explicit `error` when configured to do so.
+## Runtime helpers
 
-### `func (b *Bundle) LookupFor(locale language.Tag, key string, args ...any) (string, error)`
+- `SetLocale(locale language.Tag)`
+- `Locale() language.Tag`
+- `FallbackLocale() language.Tag`
+- `Loaded() bool`
+- `Locales() []language.Tag`
+- `Catalog(locale language.Tag) Catalog`
+- `Reset()`
 
-Resolves a key for a specific locale without mutating bundle state.
-
-### `func (b *Bundle) Get(key string, args ...any) string`
-
-Ergonomic shortcut for `Lookup`. It exists for simpler usage and continuity with v1.
-
-### `func (b *Bundle) GetFor(locale language.Tag, key string, args ...any) string`
-
-Ergonomic shortcut for `LookupFor`.
-
-### `func (b *Bundle) Has(key string) bool`
-
-Reports whether a key can be resolved through the current locale and fallback chain.
-
-### `func (b *Bundle) HasFor(locale language.Tag, key string) bool`
-
-Reports whether a key can be resolved for a specific locale and its fallback chain.
-
-## Runtime configuration
-
-### `func (b *Bundle) SetLocale(locale language.Tag)`
-
-Changes the current locale of the bundle.
-
-### `func (b *Bundle) RegisterDecoder(ext string, decoder Decoder)`
-
-Registers a new decoder for a file extension.
-
-```go
-bundle.RegisterDecoder(".ini", myDecoder)
-```
-
-### `func (b *Bundle) Reset()`
-
-Clears loaded catalogs while preserving runtime configuration and registered decoders.
-
-## Inspection helpers
-
-### `func (b *Bundle) Locale() language.Tag`
-
-Returns the current locale.
-
-### `func (b *Bundle) FallbackLocale() language.Tag`
-
-Returns the configured fallback locale.
-
-### `func (b *Bundle) Locales() []language.Tag`
-
-Lists loaded locales.
-
-### `func (b *Bundle) Catalog(locale language.Tag) Catalog`
-
-Returns a defensive copy of the flattened catalog for the given locale.
-
-### `func (b *Bundle) Loaded() bool`
-
-Reports whether at least one load operation has completed successfully.
-
-## Built-in decoders
-
-- `type JSONDecoder`
-- `type YAMLDecoder`
-- `type TOMLDecoder`
-- `type PropertiesDecoder`
-
-## Relevant errors
+## Error values
 
 - `ErrBundleNotLoaded`
 - `ErrUnsupportedFormat`
@@ -183,16 +84,8 @@ Reports whether at least one load operation has completed successfully.
 - `ErrMissingKey`
 - `ErrInvalidResourceValue`
 
-## Structured errors
+Structured errors:
 
-### `type KeyNotFoundError`
-
-Returned when `ErrorOnMissing` is enabled and the key cannot be resolved.
-
-### `type DuplicateKeyError`
-
-Returned when `ErrorOnDuplicate` is enabled and a key is declared more than once.
-
-### `type ResourceFileNameError`
-
-Returned when a resource file name does not follow the expected contract.
+- `KeyNotFoundError`
+- `DuplicateKeyError`
+- `ResourceFileNameError`

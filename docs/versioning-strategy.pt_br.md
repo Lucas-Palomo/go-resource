@@ -2,52 +2,67 @@
 
 [English](./versioning-strategy.md) | [Português (Brasil)](./versioning-strategy.pt_br.md)
 
-Este repositório usa um **layout multi-major** para que a v1 pública original continue compatível enquanto a próxima major evolui de forma independente.
+Este repositório segue um **layout multi-major**: a v1 original permanece na raiz do repositório, enquanto a reescrita com breaking changes vive em `/v2`.
 
-## Módulos
+## Tags publicadas
+
+| Tag | Módulo | Import path | Data | Significado |
+|---|---|---|---|---|
+| `v1.0.0` | v1 | `github.com/Lucas-Palomo/go-resource` | 2024-08-20 | Primeira release pública, hoje retraída |
+| `v1.0.1` | v1 | `github.com/Lucas-Palomo/go-resource` | 2026-04-11 | Release estável de manutenção para usuários existentes |
+| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | Primeira release estável da nova API |
+
+## Paths de módulo
 
 - módulo raiz: `github.com/Lucas-Palomo/go-resource`
-- pacote raiz: `github.com/Lucas-Palomo/go-resource/pkg/resource`
+- path do pacote v1: `github.com/Lucas-Palomo/go-resource/pkg/resource`
 - módulo v2: `github.com/Lucas-Palomo/go-resource/v2`
 
-## Status atual
+## Por que o repositório é estruturado assim
+
+O Go exige **semantic import versioning** para novas majors.
+
+Isso significa:
+
+- a linha pública original mantém o import path da raiz
+- a reescrita com breaking changes precisa viver sob `/v2`
+- as duas linhas podem coexistir sem quebrar consumidores existentes
+
+## Política de suporte atual
 
 ### Raiz / v1
 
-- status: **linha estável de manutenção**
-- release recomendada: **`v1.0.1+`**
-- objetivo: preservar compatibilidade para consumidores existentes
+- propósito: linha de manutenção com foco em compatibilidade
+- versão recomendada: `v1.0.1`
+- perfil esperado de mudança: correções de baixo risco, documentação e estabilidade
 
 ### `/v2`
 
-- status: **próxima major**
-- objetivo: carregar a reescrita arquitetural e a evolução futura
-- modelo de release: publicar separadamente como **`v2.0.0`** no path de módulo `/v2`
+- propósito: linha major ativa
+- versão recomendada para projetos novos: `v2.0.0`
+- perfil esperado de mudança: evolução de produto sob o path de módulo v2
 
-## Por que esse layout existe
+## Por que a `v1.0.0` foi retraída
 
-O projeto já havia sido publicado publicamente como módulo v1. Como o Go exige semantic import versioning para novas majors, o path correto para a próxima linha com breaking changes é `/v2`.
+A primeira release pública da v1 expunha falhas normais de carregamento por meio de `panic`.
 
-Isso mantém consumidores existentes no import path da raiz e permite que a nova linha evolua sem quebrar usuários da v1.
+A `v1.0.1` corrige esse contrato sem forçar uma reescrita com breaking changes:
 
-## Por que a `v1.0.1` existe
+- `Load()` não entra mais em `panic` por padrão
+- `LoadWithError()` retorna erros explícitos
+- `Err()` preserva compatibilidade com estilos antigos de chamada
+- o comportamento de fallback em `Get()` foi corrigido
 
-A release pública inicial expunha falhas de carregamento por meio de `panic`, o que não é um contrato sólido para uma biblioteca reutilizável.
+O `go.mod` da raiz retrai `v1.0.0` para que o tooling do Go sinalize que ela não é a versão recomendada.
 
-A `v1.0.1` existe para estabilizar a linha raiz sem forçar uma reescrita disruptiva:
+## Regras práticas
 
-- manter o import path existente
-- parar de derrubar o processo em falhas normais de carregamento
-- corrigir o comportamento de fallback
-- documentar com clareza o contrato suportado da v1
+- continue na v1 quando preservar o import path existente for o ponto principal
+- escolha a v2 para código novo ou para equipes que precisam de tratamento explícito de erro e um modelo de recursos mais rico
+- não publique breaking changes na raiz do módulo
+- publique futuras quebras sob o path versionado que o Go espera
 
-## Política de retract
+## Regra prática de release
 
-O `go.mod` da raiz retrai `v1.0.0` para que o tooling do Go sinalize que a primeira release pública não deve ser considerada a versão recomendada.
-
-## Consequências práticas
-
-- usuários existentes da v1 continuam importando `github.com/Lucas-Palomo/go-resource/pkg/resource`
-- a linha da raiz deve receber apenas mudanças de baixo risco e foco em compatibilidade
-- a evolução arquitetural deve acontecer em `/v2`
-- quando `v2.0.0` for publicada, projetos novos devem preferir `github.com/Lucas-Palomo/go-resource/v2`
+- **releases v1**: manutenção e compatibilidade
+- **releases v2**: evolução principal do produto

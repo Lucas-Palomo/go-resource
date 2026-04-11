@@ -2,20 +2,26 @@
 
 [English](./README.md) | [Português (Brasil)](./README.pt_br.md)
 
-**ResourceBundle-inspired internationalization for Go.**
+File-based internationalization for Go, inspired by Java `ResourceBundle`, but adapted to idiomatic Go usage.
 
-`go-resource` is a file-based i18n library for Go, inspired by Java ResourceBundles and adapted to a Go-first workflow. It allows applications to load localized labels, messages, and errors from resource files instead of scattering strings across handlers, services, and domain code.
+This repository contains **two module lines** and **three published tags**:
 
-This repository currently carries **two lines**:
+| Tag | Line | Module path | Date | Status |
+|---|---|---|---|---|
+| `v1.0.0` | v1 | `github.com/Lucas-Palomo/go-resource` | 2024-08-20 | Historical release, retracted |
+| `v1.0.1` | v1 | `github.com/Lucas-Palomo/go-resource` | 2026-04-11 | Stable maintenance release |
+| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | First stable v2 release |
 
-- **v1** at the repository root  
-  Stable maintenance line for existing consumers. Current stable release: **`v1.0.1`**.
-- **v2** in [`/v2`](./v2)  
-  Next major line of the project. It contains the architectural rewrite and the new API.
+## What this project does
 
-> `v1.0.0` was retracted. Use `v1.0.1+` for the legacy line.
->
-> If you only consume tagged releases, stay on **v1.0.1** until **`v2.0.0`** is published.
+`go-resource` loads localized messages from resource files instead of hardcoding text across handlers, services, and domain logic.
+
+Supported source formats across the repository:
+
+- JSON
+- YAML / YML
+- TOML
+- Java-style `.properties` in v2
 
 ## Which line should you use?
 
@@ -23,16 +29,17 @@ This repository currently carries **two lines**:
 
 - you already import `github.com/Lucas-Palomo/go-resource/pkg/resource`
 - you want the lowest migration cost
-- you only need the original API plus the `v1.0.1` stability fixes
+- you only need the original API with the `v1.0.1` stability fixes
 
 ### Use v2 when
 
-- you are planning new work or a structured migration
-- you need explicit error handling
-- you want `fs.FS` / `embed.FS` support
+- you are starting new work
+- you want explicit error handling
+- you need `fs.FS` or `embed.FS`
 - you want nested objects flattened into dot notation
-- you need configurable policies for missing keys and duplicate keys
-- you want native support for Java-style `.properties` files
+- you want namespace composition from directories and filename segments
+- you need configurable policies for missing keys or duplicate keys
+- you want native `.properties` support
 
 ## Repository layout
 
@@ -40,7 +47,8 @@ This repository currently carries **two lines**:
 .
 ├── go.mod                    # v1 module: github.com/Lucas-Palomo/go-resource
 ├── pkg/resource              # v1 package
-├── docs                      # root/v1 documentation
+├── docs                      # v1-focused documentation
+├── examples                  # v1 sample resources
 └── v2                        # v2 module: github.com/Lucas-Palomo/go-resource/v2
 ```
 
@@ -52,27 +60,81 @@ This repository currently carries **two lines**:
 go get github.com/Lucas-Palomo/go-resource@v1.0.1
 ```
 
-Import path:
-
 ```go
 import "github.com/Lucas-Palomo/go-resource/pkg/resource"
 ```
 
 ### v2
 
-After the first v2 tag is published:
-
 ```bash
-go get github.com/Lucas-Palomo/go-resource/v2@latest
+go get github.com/Lucas-Palomo/go-resource/v2@v2.0.0
 ```
-
-Import path:
 
 ```go
 import resource "github.com/Lucas-Palomo/go-resource/v2"
 ```
 
-## v1 quick start
+## Resource model by line
+
+### v1
+
+v1 loads **flat `map[string]string` catalogs** from JSON, YAML, and TOML files.
+
+Important consequences:
+
+- values must be strings
+- nested objects are not a supported resource model
+- directories are only for physical organization
+- extra filename segments such as `en.errors.json` do **not** become key namespaces
+
+Example:
+
+```text
+resources/
+  errors/
+    en.json
+  messages/
+    pt_BR.yaml
+```
+
+This is valid in v1, but keys stay exactly as declared inside the files.
+
+### v2
+
+v2 loads resource files into **flat runtime catalogs** with richer input rules:
+
+- nested objects are flattened into dot notation
+- directory names become namespace segments
+- extra filename segments become namespace segments
+- `.properties` is supported natively
+- scalar values such as strings, numbers, and booleans are converted to strings in the final catalog
+
+Example:
+
+```text
+resources/
+  errors/
+    en.json
+  en.messages.checkout.toml
+```
+
+Combined with:
+
+```json
+{
+  "validation": {
+    "required": "Required field"
+  }
+}
+```
+
+Produces:
+
+```text
+errors.validation.required
+```
+
+## Quick start: v1
 
 ```go
 package main
@@ -99,7 +161,7 @@ func main() {
 }
 ```
 
-## v2 quick start
+## Quick start: v2
 
 ```go
 package main
@@ -122,75 +184,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(bundle.Get("checkout.title"))
+	fmt.Println(bundle.Get("title"))
 	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
 	fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
 
-## Resource organization
-
-Both lines accept semantic directory structures such as:
-
-```text
-/resources
-  /errors
-    en.json
-    pt_BR.json
-  /messages
-    /checkout
-      en.yaml
-      pt_BR.yaml
-```
-
-The project also supports filename-based namespacing:
-
-```text
-/resources
-  en.errors.json
-  pt_BR.errors.json
-  en.messages.checkout.toml
-```
-
-In v2, nested objects are flattened automatically. Example:
-
-```json
-{
-  "checkout": {
-    "button": {
-      "confirm": "Confirm"
-    }
-  }
-}
-```
-
-becomes:
-
-```text
-checkout.button.confirm
-```
-
-## Supported formats
-
-### v1
-
-- JSON
-- YAML / YML
-- TOML
-
-### v2
-
-- JSON
-- YAML / YML
-- TOML
-- Java-style `.properties`
-
 ## Documentation
 
-### v1
+### Repository and v1
 
 - [Versioning and release strategy](./docs/versioning-strategy.md)
-- [v1 API Reference](./docs/v1-reference.md)
+- [v1 reference](./docs/v1-reference.md)
+- [Root changelog](./CHANGELOG.md)
 
 ### v2
 
@@ -198,6 +204,7 @@ checkout.button.confirm
 - [v2 API reference](./v2/docs/api-reference.md)
 - [v2 architecture notes](./v2/docs/architecture.md)
 - [Migration from v1 to v2](./v2/docs/migration-v1-to-v2.md)
+- [v2 changelog](./v2/CHANGELOG.md)
 
 ## License
 

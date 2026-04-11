@@ -2,52 +2,67 @@
 
 [English](./versioning-strategy.md) | [Português (Brasil)](./versioning-strategy.pt_br.md)
 
-This repository uses a **multi-major layout** so the original public v1 can remain compatible while the next major evolves independently.
+This repository follows a **multi-major layout**: the original v1 remains at the repository root, while the breaking rewrite lives in `/v2`.
 
-## Modules
+## Published tags
+
+| Tag | Module | Import path | Date | Meaning |
+|---|---|---|---|---|
+| `v1.0.0` | v1 | `github.com/Lucas-Palomo/go-resource` | 2024-08-20 | First public release, now retracted |
+| `v1.0.1` | v1 | `github.com/Lucas-Palomo/go-resource` | 2026-04-11 | Stable maintenance release for existing users |
+| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | First stable release of the new API |
+
+## Module paths
 
 - root module: `github.com/Lucas-Palomo/go-resource`
-- root package: `github.com/Lucas-Palomo/go-resource/pkg/resource`
+- v1 package path: `github.com/Lucas-Palomo/go-resource/pkg/resource`
 - v2 module: `github.com/Lucas-Palomo/go-resource/v2`
 
-## Current status
+## Why the repository is structured this way
+
+Go major versions require **semantic import versioning**.
+
+That means:
+
+- the original public line keeps the root import path
+- the breaking rewrite must live under `/v2`
+- both lines can coexist without breaking existing consumers
+
+## Current support policy
 
 ### Root / v1
 
-- status: **stable maintenance line**
-- recommended release: **`v1.0.1+`**
-- goal: preserve compatibility for existing consumers
+- purpose: compatibility-first maintenance line
+- recommended version: `v1.0.1`
+- expected change profile: low-risk fixes, documentation, and stability work
 
 ### `/v2`
 
-- status: **next major line**
-- goal: carry the architectural rewrite and future evolution
-- release model: publish separately as **`v2.0.0`** under the `/v2` module path
+- purpose: active major line
+- recommended version for new projects: `v2.0.0`
+- expected change profile: forward-looking feature evolution under the v2 module path
 
-## Why this layout exists
+## Why `v1.0.0` was retracted
 
-The project had already been published publicly as a v1 module. Because Go major versions require semantic import versioning, the correct path for the next breaking line is `/v2`.
+The first public v1 release exposed normal loading failures through `panic`.
 
-That keeps existing consumers on the root import path while allowing the new line to evolve without breaking v1 users.
+`v1.0.1` corrects that contract without forcing a breaking rewrite:
 
-## Why `v1.0.1` exists
+- `Load()` no longer panics by default
+- `LoadWithError()` returns explicit errors
+- `Err()` preserves compatibility for older calling styles
+- fallback behavior in `Get()` was corrected
 
-The initial public release exposed loading failures through `panic`, which is not a solid default contract for a reusable library.
+The root `go.mod` retracts `v1.0.0` so Go tooling signals that it is not the recommended version.
 
-`v1.0.1` exists to stabilize the root line without forcing a disruptive rewrite:
+## Practical rules
 
-- keep the existing import path
-- stop crashing the process on normal loading failures
-- correct fallback behavior
-- document the supported v1 contract clearly
+- keep using v1 when preserving the existing import path matters most
+- choose v2 for new code or for teams that need explicit error handling and richer resource modeling
+- do not publish breaking API changes in the root module path
+- publish future breaking work under the versioned module path that Go expects
 
-## Retract policy
+## Release rule of thumb
 
-The root `go.mod` retracts `v1.0.0` so Go tooling signals that the first public release should not be considered the recommended version.
-
-## Practical consequences
-
-- existing v1 users keep importing `github.com/Lucas-Palomo/go-resource/pkg/resource`
-- the root line should receive only low-risk, compatibility-focused changes
-- architectural evolution should happen in `/v2`
-- once `v2.0.0` is published, new projects should prefer `github.com/Lucas-Palomo/go-resource/v2`
+- **v1 releases**: maintenance and compatibility
+- **v2 releases**: primary product evolution

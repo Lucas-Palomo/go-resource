@@ -8,70 +8,67 @@
 import "github.com/Lucas-Palomo/go-resource/pkg/resource"
 ```
 
-## Purpose
+## What v1 is
 
-The v1 line is the compatibility-focused API for consumers already using the original package. In `v1.0.1`, its main improvement is not a redesign. It is a contract correction: loading failures no longer crash the process by default.
+v1 is the compatibility-focused line of `go-resource`.
 
-## Main type
+It is intentionally small:
 
-### `type Bundle`
+- filesystem-based loading
+- flat string catalogs
+- simple locale switching
+- formatting through `fmt.Sprintf`
 
-Central structure of the library. It stores:
+As of `v1.0.1`, the line is stable and no longer uses `panic` as the default loading behavior.
 
-- the configured resource root
-- locale catalogs loaded in memory
-- the current locale
-- the default fallback locale
-- the last loading error captured by compatibility APIs
+## Supported formats
 
-## Construction
+- JSON
+- YAML / YML
+- TOML
+
+v1 does **not** support:
+
+- Java-style `.properties`
+- nested resource objects
+- namespace composition from directories or dotted filename segments
+
+## Resource model
+
+The v1 decoder path loads files into `map[string]string`.
+
+Practical consequences:
+
+- every value should be a string
+- keys stay exactly as declared inside the file
+- folder structure only organizes files on disk
+- a name such as `en.errors.json` is accepted because the first segment is the locale, but `errors` does not become part of the runtime key
+
+## Construction and loading
 
 ### `func NewBundle(resourcesFolder string, defaultLocale language.Tag) *Bundle`
 
-Creates a new bundle for the given resource root and default locale.
-
-Behavior in `v1.0.1`:
-
-- initializes `currentLocale` with the default locale
-- starts with an empty in-memory catalog
-- preserves compatibility with existing construction code
-
-## Loading
+Creates a bundle for a root folder and a default locale.
 
 ### `func (b *Bundle) Load()`
 
-Legacy-compatible loading method.
-
-In `v1.0.1`, this method no longer uses `panic`. Instead, it records the last load error internally. Call `Err()` immediately after `Load()` if you need to inspect the failure.
-
-```go
-bundle.Load()
-if err := bundle.Err(); err != nil {
-	return err
-}
-```
+Compatibility method. In `v1.0.1`, it no longer panics by default. It stores the last loading error internally.
 
 ### `func (b *Bundle) LoadWithError() error`
 
-Preferred loading method for new code.
-
-It returns filesystem, locale parsing, decoder, or unsupported-format errors directly:
-
-```go
-if err := bundle.LoadWithError(); err != nil {
-	return err
-}
-```
+Preferred loading method for new v1 code. Returns load errors directly.
 
 ### `func (b *Bundle) Err() error`
 
 Returns the last loading error captured by `Load()` or `LoadWithError()`.
 
-## Lookup
+## Lookup API
+
+### `func (b *Bundle) SetLocale(locale language.Tag)`
+
+Changes the current locale.
 
 ### `func (b *Bundle) Get(id string, replacers ...any) string`
-
-Looks up a key using the current locale.
 
 Resolution order in `v1.0.1`:
 
@@ -81,48 +78,17 @@ Resolution order in `v1.0.1`:
 
 ### `func (b *Bundle) GetWithLocale(locale language.Tag, id string, replacers ...any) string`
 
-Looks up the key for a specific locale without changing bundle state.
+Resolves a key for a specific locale without changing bundle state.
 
-If the key does not exist, the key itself is returned.
+## Error values
 
-## Runtime configuration
+- `ErrUnknownBundleEngine`
+- `ErrUnsupportedFileExt`
+- `ErrInvalidResourceFileName`
 
-### `func (b *Bundle) SetLocale(locale language.Tag)`
+## Behavioral notes
 
-Changes the current locale used by `Get()`.
-
-## Supported formats
-
-- `.json`
-- `.yaml`
-- `.yml`
-- `.toml`
-
-## File naming rule
-
-v1 expects each resource file to be named with the locale in the first filename segment.
-
-Examples:
-
-- `en.json`
-- `pt_BR.yaml`
-- `es.toml`
-
-Nested directories are allowed, but the locale still comes from the file name.
-
-## Error model in `v1.0.1`
-
-Typical loading failure cases:
-
-- unreadable directory or file
-- invalid locale in filename
-- unsupported file extension
-- invalid JSON / YAML / TOML payload
-
-The important point is that these failures now come back as `error` values instead of terminating the application through `panic`.
-
-## Recommendation
-
-Keep using v1 when compatibility matters more than architecture changes.
-
-For new systems or deeper evolution, migrate toward `/v2`.
+- duplicate keys are not exposed as a configurable public policy
+- files loaded later can overwrite earlier keys in the same locale
+- the package is best suited to smaller, simpler setups
+- move to v2 when you need nested objects, `.properties`, `fs.FS`, or explicit policies
