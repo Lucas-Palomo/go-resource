@@ -98,10 +98,12 @@ If the key is still not found, the key itself is returned.
 
 ## Documentation
 
-- [Versioning and release strategy](./docs/versioning-strategy.md)
-- [Estratégia de versionamento e release](./docs/versioning-strategy.pt_br.md)
-- [v1 reference](./docs/v1-reference.md)
-- [Referência da v1](./docs/v1-reference.pt_br.md)
+- EN
+	- [Versioning and release strategy](./docs/versioning-strategy.md)
+	- [v1 reference](./docs/v1-reference.md)
+- PT-BR
+	- [Estratégia de versionamento e release](./docs/versioning-strategy.pt_br.md)
+	- [Referência da v1](./docs/v1-reference.pt_br.md)
 
 ## Package path
 
