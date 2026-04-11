@@ -1,0 +1,6 @@
+{
+  "title": "Checkout",
+  "checkout": {
+    "hello": "Hello, %s"
+  }
+}

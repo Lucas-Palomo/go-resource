@@ -1,93 +1,93 @@
-# Migração da v1 para a v2
+# Migration from v1 to v2
 
-## Resumo executivo
+[English](./migration-v1-to-v2.md) | [Português (Brasil)](./migration-v1-to-v2.pt_br.md)
 
-A v2 muda o projeto de um pacote pequeno, útil para cenários simples, para uma base mais sólida para uso real em bibliotecas, frameworks e aplicações maiores.
+## Executive summary
 
-A principal mudança não é cosmética. Ela corrige o contrato da API.
+v2 changes the project from a small package useful for simple scenarios into a stronger base for real use in libraries, frameworks, and larger applications. The main change is not cosmetic. It corrects the API contract.
 
-## Problemas centrais da v1
+## Core problems in v1
 
-### 1. `panic` como fluxo de erro
+### 1. `panic` as error flow
 
-Na v1, falhas de leitura de arquivo, parsing e formatos inválidos derrubam a aplicação. Para biblioteca isso é ruim. O consumidor precisa decidir o que fazer com o erro.
+In v1, file-reading failures, parsing problems, and invalid formats crash the application. That is a bad contract for a library. The consumer must decide how to handle the error.
 
-### 2. Bug de fallback
+### 2. Fallback bug
 
-Na v1, `Get()` tenta fazer fallback para a locale default quando a locale atual não resolve a mensagem. O problema é que `GetWithLocale()` devolve a própria chave quando a locale não existe, então o resultado não fica vazio e o fallback não acontece como esperado.
+In v1, `Get()` tries to fall back to the default locale when the current locale does not resolve the message. The problem is that `GetWithLocale()` returns the key itself when the locale does not exist, so the result is not empty and the fallback does not happen as expected.
 
-### 3. Responsabilidades acopladas
+### 3. Coupled responsibilities
 
-O mesmo arquivo mistura:
+The same file mixes:
 
-- walking de diretórios
-- parsing de formatos
-- merge de mensagens
-- escolha de locale
-- formatação de string
+- directory walking
+- format parsing
+- message merging
+- locale selection
+- string formatting
 
-Isso dificulta evolução, teste e manutenção.
+That makes evolution, testing, and maintenance harder.
 
-### 4. Sem `fs.FS`
+### 4. No `fs.FS`
 
-A v1 prende o consumo ao filesystem tradicional. Isso limita uso com `embed.FS`.
+v1 ties consumption to the traditional filesystem. That limits usage with `embed.FS`.
 
-### 5. Sem política formal para colisão e chave ausente
+### 5. No formal policy for collisions and missing keys
 
-Quando uma key se repete, o comportamento não é uma decisão explícita da API. Quando uma key não existe, o retorno também não é configurável.
+When a key is repeated, the behavior is not an explicit API decision. When a key does not exist, the return behavior is also not configurable.
 
-### 6. Sem suporte a objetos aninhados
+### 6. No support for nested objects
 
-A v1 trabalha na prática com `map[string]string`. Isso limita organização de catálogos maiores.
+v1 works in practice with `map[string]string`. That limits organization for larger catalogs.
 
-## Quebras de compatibilidade
+## Breaking changes
 
-### 1. Path do módulo
+### 1. Module path
 
-A v2 segue o padrão semântico de major version do Go:
+v2 follows Go semantic major versioning:
 
 ```go
 import resource "github.com/Lucas-Palomo/go-resource/v2"
 ```
 
-## 2. Inicialização
+### 2. Initialization
 
-### v1
+#### v1
 
 ```go
 bundle := resource.NewBundle("./resources", language.English)
 bundle.Load()
 ```
 
-### v2
+#### v2
 
 ```go
 bundle := resource.New(
-    resource.WithFallbackLocale(language.English),
+	resource.WithFallbackLocale(language.English),
 )
 
 if err := bundle.LoadDir("./resources"); err != nil {
-    panic(err)
+	panic(err)
 }
 ```
 
-## 3. Carregamento
+### 3. Loading
 
-A v2 separa o carregamento por fonte:
+v2 separates loading by source:
 
 - `LoadDir(root string)`
 - `LoadFS(fsys fs.FS, root string)`
 
-## 4. Lookup
+### 4. Lookup
 
-### v1
+#### v1
 
 ```go
 bundle.Get("hello", "Lucas")
 bundle.GetWithLocale(language.English, "hello", "Lucas")
 ```
 
-### v2
+#### v2
 
 ```go
 bundle.Get("hello", "Lucas")
@@ -97,11 +97,11 @@ value, err := bundle.Lookup("hello", "Lucas")
 value, err := bundle.LookupFor(language.English, "hello", "Lucas")
 ```
 
-`Lookup` é a API preferível quando você quer controle explícito de erro.
+`Lookup` is the preferred API when you want explicit error control.
 
-## 5. Estruturas aninhadas
+### 5. Nested structures
 
-### v1
+#### v1
 
 ```json
 {
@@ -109,9 +109,9 @@ value, err := bundle.LookupFor(language.English, "hello", "Lucas")
 }
 ```
 
-### v2
+#### v2
 
-Além do formato plano, a v2 também aceita:
+Besides the flat format, v2 also accepts:
 
 ```json
 {
@@ -124,20 +124,20 @@ Além do formato plano, a v2 também aceita:
 }
 ```
 
-Isso vira:
+That becomes:
 
 - `checkout.title`
 - `checkout.button.confirm`
 
-## 6. Namespacing por pasta e nome de arquivo
+### 6. Namespacing by folder and filename
 
-Exemplo:
+Example:
 
 ```text
 resources/errors/en.json
 ```
 
-com conteúdo:
+with content:
 
 ```json
 {
@@ -147,15 +147,15 @@ com conteúdo:
 }
 ```
 
-vira:
+becomes:
 
 ```text
 errors.validation.required
 ```
 
-## Novas capacidades
+## New capabilities
 
-### Estratégia de chave ausente
+### Missing-key strategy
 
 ```go
 resource.WithMissingKeyStrategy(resource.ReturnKeyOnMissing)
@@ -163,59 +163,67 @@ resource.WithMissingKeyStrategy(resource.ReturnEmptyOnMissing)
 resource.WithMissingKeyStrategy(resource.ErrorOnMissing)
 ```
 
-### Estratégia de chave duplicada
+### Duplicate-key strategy
 
 ```go
 resource.WithDuplicateKeyStrategy(resource.OverwriteOnDuplicate)
 resource.WithDuplicateKeyStrategy(resource.ErrorOnDuplicate)
 ```
 
-### Registro de decoder customizado
+### Custom decoder registration
 
 ```go
 bundle.RegisterDecoder(".ini", myDecoder)
 ```
 
-## Estratégia recomendada para adoção
+### Inspection and reset helpers
 
-### Migração conservadora
+```go
+bundle.Has("checkout.title")
+bundle.HasFor(language.English, "checkout.title")
+bundle.Reset()
+```
 
-- mantenha a estrutura atual de arquivos
-- troque o import para `/v2`
-- inicialize com `resource.New(...)`
-- troque `Load()` por `LoadDir()`
-- continue usando `Get()` no primeiro momento
-- depois evolua para `Lookup()` onde precisar de controle fino
+## Recommended adoption strategy
 
-### Migração estrutural
+### Conservative migration
 
-- reorganize mensagens por namespace
-- converta arquivos planos para objetos aninhados
-- habilite `ErrorOnDuplicate`
-- habilite `ErrorOnMissing` em ambiente de teste
+- keep the current file structure
+- change the import to `/v2`
+- initialize with `resource.New(...)`
+- replace `Load()` with `LoadDir()`
+- keep using `Get()` at first
+- later evolve to `Lookup()` where you need explicit control
 
-## Exemplo completo
+### Structural migration
+
+- reorganize messages by namespace
+- convert flat files into nested objects
+- enable `ErrorOnDuplicate`
+- enable `ErrorOnMissing` in test environments
+
+## Full example
 
 ```go
 bundle := resource.New(
-    resource.WithFallbackLocale(language.English),
-    resource.WithLocale(language.MustParse("pt-BR")),
-    resource.WithMissingKeyStrategy(resource.ErrorOnMissing),
-    resource.WithDuplicateKeyStrategy(resource.ErrorOnDuplicate),
+	resource.WithFallbackLocale(language.English),
+	resource.WithLocale(language.MustParse("pt-BR")),
+	resource.WithMissingKeyStrategy(resource.ErrorOnMissing),
+	resource.WithDuplicateKeyStrategy(resource.ErrorOnDuplicate),
 )
 
 if err := bundle.LoadDir("./resources"); err != nil {
-    return err
+	return err
 }
 
 msg, err := bundle.Lookup("checkout.hello", "Lucas")
 if err != nil {
-    return err
+	return err
 }
 
 fmt.Println(msg)
 ```
 
-## Recomendação final
+## Final recommendation
 
-Use a v2 como base definitiva. A v1 pode continuar existindo para compatibilidade, mas não deve ser a linha principal de evolução do projeto.
+Use v2 as the long-term foundation. v1 can continue to exist for compatibility, but it should not be the main line of evolution.

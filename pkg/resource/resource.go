@@ -43,6 +43,7 @@ func (b *Bundle) loadResources(file string, lang language.Tag, engine bundleEngi
 	}
 
 	messages := make(map[string]string)
+
 	switch engine {
 	case jsonEngine:
 		err = json.Unmarshal(content, &messages)
@@ -51,7 +52,7 @@ func (b *Bundle) loadResources(file string, lang language.Tag, engine bundleEngi
 	case yamlEngine:
 		err = yaml.Unmarshal(content, &messages)
 	default:
-		panic(fmt.Sprintf("Unknown bundle backend engine: %d", engine))
+		panic(fmt.Sprintf("unknown bundle backend engine: %d", engine))
 	}
 
 	if err != nil {
@@ -60,9 +61,10 @@ func (b *Bundle) loadResources(file string, lang language.Tag, engine bundleEngi
 
 	if b.messages[lang] == nil {
 		b.messages[lang] = messages
-	} else {
-		maps.Copy(b.messages[lang], messages)
+		return
 	}
+
+	maps.Copy(b.messages[lang], messages)
 }
 
 func (b *Bundle) loadFolder(dir string) {
@@ -100,11 +102,11 @@ func (b *Bundle) Load() {
 }
 
 func (b *Bundle) GetWithLocale(locale language.Tag, id string, replacers ...any) string {
-	if message, ok := b.messages[locale]; ok {
+	if messages, ok := b.messages[locale]; ok {
 		if len(replacers) > 0 {
-			return fmt.Sprintf(message[id], replacers...)
+			return fmt.Sprintf(messages[id], replacers...)
 		}
-		return fmt.Sprint(message[id])
+		return fmt.Sprint(messages[id])
 	}
 
 	return id
@@ -118,6 +120,6 @@ func (b *Bundle) Get(id string, replacers ...any) string {
 	return message
 }
 
-func (b *Bundle) SetLocale(language language.Tag) {
-	b.currentLocale = language
+func (b *Bundle) SetLocale(locale language.Tag) {
+	b.currentLocale = locale
 }

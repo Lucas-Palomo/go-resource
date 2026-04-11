@@ -10,10 +10,12 @@ import (
 type MissingKeyStrategy int
 
 const (
-	// ReturnKeyOnMissing returns the original key. This mirrors the common i18n fallback pattern.
+	// ReturnKeyOnMissing returns the original key. This mirrors a common i18n fallback pattern.
 	ReturnKeyOnMissing MissingKeyStrategy = iota
+
 	// ReturnEmptyOnMissing returns an empty string.
 	ReturnEmptyOnMissing
+
 	// ErrorOnMissing returns ErrMissingKey.
 	ErrorOnMissing
 )
@@ -24,6 +26,7 @@ type DuplicateKeyStrategy int
 const (
 	// OverwriteOnDuplicate keeps the most recently loaded value.
 	OverwriteOnDuplicate DuplicateKeyStrategy = iota
+
 	// ErrorOnDuplicate aborts loading with ErrDuplicateKey.
 	ErrorOnDuplicate
 )
@@ -80,8 +83,10 @@ func normalizeExt(ext string) string {
 	if ext == "" {
 		return ext
 	}
+
 	if strings.HasPrefix(ext, ".") {
 		return ext
 	}
+
 	return "." + ext
 }

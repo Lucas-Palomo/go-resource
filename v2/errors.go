@@ -17,7 +17,7 @@ var (
 	// ErrInvalidResourceFileName indicates that the file naming convention could not be parsed.
 	ErrInvalidResourceFileName = errors.New("invalid resource file name")
 
-	// ErrDuplicateKey indicates that the same fully-qualified key was declared more than once.
+	// ErrDuplicateKey indicates that the same fully qualified key was declared more than once.
 	ErrDuplicateKey = errors.New("duplicate resource key")
 
 	// ErrMissingKey indicates that a lookup key was not found in the locale chain.

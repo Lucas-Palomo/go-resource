@@ -64,6 +64,7 @@ func (b *Bundle) LoadFS(fsys fs.FS, root string) error {
 			if _, exists := pending[locale][key]; exists && duplicateKeyStrategy == ErrorOnDuplicate {
 				return DuplicateKeyError{Locale: locale, Key: key, File: filePath}
 			}
+
 			pending[locale][key] = value
 		}
 
@@ -80,6 +81,7 @@ func (b *Bundle) LoadFS(fsys fs.FS, root string) error {
 		if b.catalogs[locale] == nil {
 			b.catalogs[locale] = make(Catalog)
 		}
+
 		if duplicateKeyStrategy == ErrorOnDuplicate {
 			for key := range catalog {
 				if _, exists := b.catalogs[locale][key]; exists {
@@ -87,6 +89,7 @@ func (b *Bundle) LoadFS(fsys fs.FS, root string) error {
 				}
 			}
 		}
+
 		maps.Copy(b.catalogs[locale], catalog)
 	}
 
@@ -101,12 +104,14 @@ func (b *Bundle) LoadFS(fsys fs.FS, root string) error {
 func (b *Bundle) snapshotDecoders() map[string]Decoder {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+
 	return maps.Clone(b.decoders)
 }
 
 func (b *Bundle) snapshotDuplicateKeyStrategy() DuplicateKeyStrategy {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+
 	return b.duplicateKeyStrategy
 }
 
@@ -125,14 +130,21 @@ func parseResourcePath(root string, filePath string) (language.Tag, string, erro
 	ext := path.Ext(base)
 	name := strings.TrimSuffix(base, ext)
 	parts := strings.Split(name, ".")
+
 	if len(parts) == 0 || strings.TrimSpace(parts[0]) == "" {
-		return language.Und, "", ResourceFileNameError{Path: filePath, Reason: "missing locale segment"}
+		return language.Und, "", ResourceFileNameError{
+			Path:   filePath,
+			Reason: "missing locale segment",
+		}
 	}
 
 	localeText := strings.ReplaceAll(parts[0], "_", "-")
 	locale, err := language.Parse(localeText)
 	if err != nil {
-		return language.Und, "", ResourceFileNameError{Path: filePath, Reason: err.Error()}
+		return language.Und, "", ResourceFileNameError{
+			Path:   filePath,
+			Reason: err.Error(),
+		}
 	}
 
 	namespaceParts := make([]string, 0, 8)
@@ -178,8 +190,7 @@ func flattenValue(fullKey string, value any, out Catalog) error {
 		return nil
 	case int, int8, int16, int32, int64,
 		uint, uint8, uint16, uint32, uint64,
-		float32, float64,
-		bool:
+		float32, float64, bool:
 		out[fullKey] = fmt.Sprint(typed)
 		return nil
 	case nil:

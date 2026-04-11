@@ -1,4 +1,4 @@
-# v2 API Reference
+# Referência da API v2
 
 [English](./api-reference.md) | [Português (Brasil)](./api-reference.pt_br.md)
 
@@ -8,15 +8,15 @@
 import resource "github.com/Lucas-Palomo/go-resource/v2"
 ```
 
-## Main types
+## Tipos principais
 
 ### `type Bundle`
 
-Core structure of the library. It stores catalogs by locale, registered decoders, and lookup strategies.
+Estrutura central da biblioteca. Armazena catálogos por locale, decoders registrados e estratégias de lookup.
 
 ### `type Decoder`
 
-Contract used to support new file formats.
+Contrato para suportar novos formatos de arquivo.
 
 ```go
 type Decoder interface {
@@ -26,11 +26,11 @@ type Decoder interface {
 
 ### `type DecoderFunc`
 
-Adapter used to register a decoder from a function.
+Adapter para registrar decoder a partir de função.
 
 ### `type MissingKeyStrategy`
 
-Controls the behavior when a key is not found.
+Controla o comportamento quando uma chave não é encontrada.
 
 - `ReturnKeyOnMissing`
 - `ReturnEmptyOnMissing`
@@ -38,18 +38,18 @@ Controls the behavior when a key is not found.
 
 ### `type DuplicateKeyStrategy`
 
-Controls the behavior when the same key is declared more than once.
+Controla o comportamento quando uma chave é declarada mais de uma vez.
 
 - `OverwriteOnDuplicate`
 - `ErrorOnDuplicate`
 
-## Construction and options
+## Construção e opções
 
 ### `func New(opts ...Option) *Bundle`
 
-Creates a bundle with built-in decoders for JSON, YAML, YML, TOML, and Java-style `.properties` files.
+Cria um bundle com decoders padrão para JSON, YAML, YML, TOML e arquivos `.properties` no estilo Java.
 
-Example:
+Exemplo:
 
 ```go
 bundle := resource.New(
@@ -60,25 +60,25 @@ bundle := resource.New(
 
 ### `func WithFallbackLocale(locale language.Tag) Option`
 
-Sets the bundle fallback locale.
+Define a locale fallback do bundle.
 
 ### `func WithLocale(locale language.Tag) Option`
 
-Sets the initial locale used by `Get` and `Lookup`.
+Define a locale inicial usada por `Get` e `Lookup`.
 
 ### `func WithMissingKeyStrategy(strategy MissingKeyStrategy) Option`
 
-Sets the policy for missing keys.
+Define a política para chave ausente.
 
 ### `func WithDuplicateKeyStrategy(strategy DuplicateKeyStrategy) Option`
 
-Sets the policy for duplicate keys.
+Define a política para chave duplicada.
 
-## Loading
+## Carregamento
 
 ### `func (b *Bundle) LoadDir(root string) error`
 
-Loads resources from an operating system directory.
+Carrega recursos a partir de um diretório do sistema operacional.
 
 ```go
 if err := bundle.LoadDir("./resources"); err != nil {
@@ -88,43 +88,43 @@ if err := bundle.LoadDir("./resources"); err != nil {
 
 ### `func (b *Bundle) LoadFS(fsys fs.FS, root string) error`
 
-Loads resources from any `fs.FS`, including `embed.FS`.
+Carrega recursos a partir de qualquer `fs.FS`, incluindo `embed.FS`.
 
 ## Lookup
 
 ### `func (b *Bundle) Lookup(key string, args ...any) (string, error)`
 
-Resolves a key using the current locale and fallback chain.
+Resolve uma chave usando a locale atual e a cadeia de fallback.
 
 ### `func (b *Bundle) LookupFor(locale language.Tag, key string, args ...any) (string, error)`
 
-Resolves a key for a specific locale without mutating the bundle state.
+Resolve uma chave forçando uma locale específica, sem alterar o estado atual do bundle.
 
 ### `func (b *Bundle) Get(key string, args ...any) string`
 
-Ergonomic shortcut for `Lookup`. Useful for simple use cases and mental continuity with v1.
+Atalho ergonômico para `Lookup`. Útil para casos simples e continuidade mental com a v1.
 
 ### `func (b *Bundle) GetFor(locale language.Tag, key string, args ...any) string`
 
-Ergonomic shortcut for `LookupFor`.
+Atalho ergonômico para `LookupFor`.
 
 ### `func (b *Bundle) Has(key string) bool`
 
-Reports whether a key can be resolved for the current locale and fallback chain.
+Informa se uma chave pode ser resolvida usando a locale atual e a cadeia de fallback.
 
 ### `func (b *Bundle) HasFor(locale language.Tag, key string) bool`
 
-Reports whether a key can be resolved for a specific locale and fallback chain.
+Informa se uma chave pode ser resolvida para uma locale específica e sua cadeia de fallback.
 
-## Runtime configuration
+## Configuração em runtime
 
 ### `func (b *Bundle) SetLocale(locale language.Tag)`
 
-Changes the current locale of the bundle.
+Troca a locale atual do bundle.
 
 ### `func (b *Bundle) RegisterDecoder(ext string, decoder Decoder)`
 
-Registers a new decoder for an extension.
+Registra um novo decoder para uma extensão.
 
 ```go
 bundle.RegisterDecoder(".ini", myDecoder)
@@ -132,38 +132,38 @@ bundle.RegisterDecoder(".ini", myDecoder)
 
 ### `func (b *Bundle) Reset()`
 
-Clears loaded catalogs while preserving runtime configuration and registered decoders.
+Limpa os catálogos carregados preservando a configuração em runtime e os decoders registrados.
 
-## Inspection
+## Inspeção
 
 ### `func (b *Bundle) Locale() language.Tag`
 
-Returns the current locale.
+Retorna a locale atual.
 
 ### `func (b *Bundle) FallbackLocale() language.Tag`
 
-Returns the configured fallback locale.
+Retorna a locale fallback configurada.
 
 ### `func (b *Bundle) Locales() []language.Tag`
 
-Lists the loaded locales.
+Lista as locales carregadas.
 
 ### `func (b *Bundle) Catalog(locale language.Tag) Catalog`
 
-Returns a defensive copy of the flattened catalog for that locale.
+Retorna uma cópia defensiva do catálogo achatado daquela locale.
 
 ### `func (b *Bundle) Loaded() bool`
 
-Reports whether at least one loading operation completed successfully.
+Informa se ao menos uma operação de carregamento foi concluída com sucesso.
 
-## Built-in decoders
+## Decoders built-in
 
 - `type JSONDecoder`
 - `type YAMLDecoder`
 - `type TOMLDecoder`
 - `type PropertiesDecoder`
 
-## Relevant errors
+## Erros relevantes
 
 - `ErrBundleNotLoaded`
 - `ErrUnsupportedFormat`
@@ -172,16 +172,16 @@ Reports whether at least one loading operation completed successfully.
 - `ErrMissingKey`
 - `ErrInvalidResourceValue`
 
-## Structured errors
+## Erros estruturados
 
 ### `type KeyNotFoundError`
 
-Returned when `ErrorOnMissing` is enabled and the key cannot be resolved.
+Retornado quando `ErrorOnMissing` está habilitado e a chave não pode ser resolvida.
 
 ### `type DuplicateKeyError`
 
-Returned when `ErrorOnDuplicate` is enabled and a key is declared more than once.
+Retornado quando `ErrorOnDuplicate` está habilitado e uma chave é declarada mais de uma vez.
 
 ### `type ResourceFileNameError`
 
-Returned when the file name does not follow the expected contract.
+Retornado quando o nome do arquivo não segue o contrato esperado.

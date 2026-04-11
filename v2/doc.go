@@ -1,6 +1,6 @@
 // Package resource provides a ResourceBundle-inspired internationalization layer for Go.
 //
-// The package loads JSON, YAML, and TOML resource files from a directory or any fs.FS,
+// The package loads JSON, YAML, TOML, and Java-style .properties resource files from a directory or any fs.FS,
 // merges them into locale catalogs, resolves locale fallbacks, and formats dynamic labels.
 //
 // Supported resource layouts:
@@ -33,6 +33,7 @@
 //
 //	checkout.title
 //
-// When the file is already scoped by namespace, both prefixes are combined. For example,
-// resources/errors/en.json with the JSON above becomes the key errors.checkout.title.
+// When the file is already scoped by namespace, both prefixes are combined.
+// For example, resources/errors/en.json with the JSON above becomes the key
+// errors.checkout.title.
 package resource

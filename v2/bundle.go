@@ -59,6 +59,7 @@ func New(opts ...Option) *Bundle {
 	b.RegisterDecoder(".yaml", YAMLDecoder{})
 	b.RegisterDecoder(".yml", YAMLDecoder{})
 	b.RegisterDecoder(".toml", TOMLDecoder{})
+	b.RegisterDecoder(".properties", PropertiesDecoder{})
 
 	return b
 }
@@ -75,6 +76,7 @@ func (b *Bundle) RegisterDecoder(ext string, decoder Decoder) {
 func (b *Bundle) SetLocale(locale language.Tag) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
 	b.currentLocale = locale
 }
 
@@ -82,6 +84,7 @@ func (b *Bundle) SetLocale(locale language.Tag) {
 func (b *Bundle) Locale() language.Tag {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+
 	return b.currentLocale
 }
 
@@ -89,6 +92,7 @@ func (b *Bundle) Locale() language.Tag {
 func (b *Bundle) FallbackLocale() language.Tag {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+
 	return b.fallbackLocale
 }
 
@@ -96,6 +100,7 @@ func (b *Bundle) FallbackLocale() language.Tag {
 func (b *Bundle) Loaded() bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+
 	return b.loaded
 }
 
@@ -129,10 +134,20 @@ func (b *Bundle) Catalog(locale language.Tag) Catalog {
 	return catalog.Clone()
 }
 
+// Reset clears all loaded catalogs while preserving configuration and registered decoders.
+func (b *Bundle) Reset() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.catalogs = make(map[language.Tag]Catalog)
+	b.loaded = false
+}
+
 // Lookup resolves a key using the current locale and the configured fallback chain.
 func (b *Bundle) Lookup(key string, args ...any) (string, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+
 	return b.lookupLocked(b.currentLocale, key, args...)
 }
 
@@ -140,7 +155,34 @@ func (b *Bundle) Lookup(key string, args ...any) (string, error) {
 func (b *Bundle) LookupFor(locale language.Tag, key string, args ...any) (string, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+
 	return b.lookupLocked(locale, key, args...)
+}
+
+// Has reports whether a key is resolvable using the current locale and fallback chain.
+func (b *Bundle) Has(key string) bool {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	if !b.loaded {
+		return false
+	}
+
+	_, ok := b.resolveLocked(b.currentLocale, key)
+	return ok
+}
+
+// HasFor reports whether a key is resolvable for a specific locale and fallback chain.
+func (b *Bundle) HasFor(locale language.Tag, key string) bool {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	if !b.loaded {
+		return false
+	}
+
+	_, ok := b.resolveLocked(locale, key)
+	return ok
 }
 
 // Get is a convenience wrapper around Lookup. It preserves the old ergonomic style while avoiding panics.
@@ -152,6 +194,7 @@ func (b *Bundle) Get(key string, args ...any) string {
 		}
 		return key
 	}
+
 	return value
 }
 
@@ -164,6 +207,7 @@ func (b *Bundle) GetFor(locale language.Tag, key string, args ...any) string {
 		}
 		return key
 	}
+
 	return value
 }
 
@@ -183,7 +227,11 @@ func (b *Bundle) lookupLocked(locale language.Tag, key string, args ...any) (str
 	case ReturnEmptyOnMissing:
 		return "", nil
 	case ErrorOnMissing:
-		return "", KeyNotFoundError{Key: key, Locale: locale, Fallback: b.fallbackLocale}
+		return "", KeyNotFoundError{
+			Key:      key,
+			Locale:   locale,
+			Fallback: b.fallbackLocale,
+		}
 	default:
 		return key, nil
 	}
@@ -215,6 +263,7 @@ func localeChain(locale language.Tag, fallback language.Tag) []language.Tag {
 			if _, ok := seen[id]; ok {
 				break
 			}
+
 			seen[id] = struct{}{}
 			chain = append(chain, current)
 		}
@@ -238,5 +287,6 @@ func joinKey(parts ...string) string {
 			filtered = append(filtered, part)
 		}
 	}
+
 	return strings.Join(filtered, ".")
 }

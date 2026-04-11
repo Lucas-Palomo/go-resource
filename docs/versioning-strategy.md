@@ -1,5 +1,7 @@
 # Versioning and Release Strategy
 
+[English](./versioning-strategy.md) | [Português (Brasil)](./versioning-strategy.pt_br.md)
+
 This repository uses a **multi-major layout**:
 
 - root module: `github.com/Lucas-Palomo/go-resource`
@@ -15,7 +17,7 @@ The root `go.mod` retracts `v1.0.0` to signal that the initial public release sh
 
 Suggested release flow:
 
-1. keep root as the legacy v1 line
+1. keep the root as the legacy v1 line
 2. publish a corrected root tag such as `v1.0.1`
 3. publish the new major under `/v2` as `v2.0.0`
 

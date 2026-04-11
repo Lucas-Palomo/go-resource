@@ -1,51 +1,51 @@
-# Notas de arquitetura da v2
+# v2 Architecture Notes
 
-## Objetivo de arquitetura
+[English](./architecture.md) | [Português (Brasil)](./architecture.pt_br.md)
 
-A v2 foi desenhada para tratar o `go-resource` como biblioteca de verdade, não apenas como um helper de leitura de arquivos.
+## Architecture goal
 
-O alvo é simples:
+v2 was designed to treat `go-resource` as a real library, not only as a file-reading helper. The target is simple:
 
-- separar responsabilidades
-- reduzir acoplamento
-- eliminar `panic` do caminho principal
-- preparar terreno para futuras extensões sem deformar a API
+- separate responsibilities
+- reduce coupling
+- remove `panic` from the main path
+- prepare room for future extensions without deforming the API
 
-## Separação por responsabilidades
+## Separation of responsibilities
 
 ### `bundle.go`
 
-Camada pública de estado, lookup, fallback e operações de runtime.
+Public state, lookup, fallback, and runtime operations.
 
 ### `loader.go`
 
-Camada de carregamento, walking de diretórios/`fs.FS`, parsing de nomes de arquivos e flatten de dados.
+Loading layer, directory / `fs.FS` walking, file-name parsing, and data flattening.
 
 ### `decoder.go`
 
-Contrato de decoder e implementações padrão para JSON, YAML e TOML.
+Decoder contract and built-in implementations for JSON, YAML, and TOML.
 
 ### `options.go`
 
-Configuração declarativa da biblioteca.
+Declarative library configuration.
 
 ### `errors.go`
 
-Erros públicos e erros estruturados.
+Public errors and structured error types.
 
-## Decisão: `LoadDir` e `LoadFS`
+## Decision: `LoadDir` and `LoadFS`
 
-A v1 estava presa ao filesystem tradicional. A v2 passa a aceitar `fs.FS`, o que abre espaço para:
+v1 was tied to the traditional filesystem. v2 accepts `fs.FS`, which opens space for:
 
 - `embed.FS`
-- testes mais simples
-- composição melhor com bibliotecas Go modernas
+- simpler tests
+- better composition with modern Go libraries
 
-## Decisão: flatten para dot notation
+## Decision: flattening into dot notation
 
-Em i18n real, arquivos crescem. Mapas planos rapidamente ficam difíceis de manter. Por isso a v2 converte objetos aninhados para chaves planas previsíveis.
+In real i18n projects, files grow. Flat maps quickly become hard to maintain. v2 converts nested objects into predictable flat keys.
 
-Exemplo:
+Example:
 
 ```json
 {
@@ -57,48 +57,48 @@ Exemplo:
 }
 ```
 
-vira:
+becomes:
 
 ```text
 checkout.button.confirm
 ```
 
-## Decisão: namespacing híbrido
+## Decision: hybrid namespacing
 
-A v2 aceita namespace por:
+v2 accepts namespaces from:
 
-- estrutura de diretórios
-- segmentos extras no nome do arquivo
+- directory structure
+- extra segments in the file name
 
-Isso permite duas escolas de organização sem forçar apenas uma.
+That supports two organization styles without forcing only one.
 
-## Decisão: política explícita para falhas
+## Decision: explicit failure policies
 
-Biblioteca madura não deve esconder escolhas importantes.
+A mature library should not hide important choices. v2 makes two behaviors explicit:
 
-Por isso a v2 torna explícitos dois comportamentos:
+- how to handle missing keys
+- how to handle duplicate keys
 
-- como tratar chave ausente
-- como tratar chave duplicada
+## Decision: `Get` stays, but `Lookup` is the more correct API
 
-## Decisão: `Get` continua, mas `Lookup` é a API mais correta
+`Get` stays for ergonomics and mental continuity with v1. `Lookup` is the preferred API for serious scenarios because it returns `error` and makes the flow explicit.
 
-`Get` existe por ergonomia e compatibilidade mental com a v1.
+## Decision: thread-safe reads
 
-Mas `Lookup` é a API que melhor serve cenários sérios, porque devolve `error` e torna o fluxo explícito.
+The structure uses `sync.RWMutex` to protect internal state, allowing concurrent reads safely.
 
-## Decisão: thread-safe para leitura
+## Additional runtime helpers
 
-A estrutura usa `sync.RWMutex` para proteger estado interno, permitindo leituras concorrentes com segurança.
+`Has`, `HasFor`, and `Reset` were added as low-friction helpers for tests, diagnostics, and controlled reload flows.
 
-## Evoluções futuras já preparadas
+## Future evolutions already prepared
 
-A arquitetura da v2 já abre caminho para:
+The current architecture leaves room for:
 
-- pluralização
-- placeholders nomeados
-- fallback mais sofisticado por matcher
-- carregamento incremental
-- hot reload opcional
-- métricas de missing keys
-- integração com backends externos
+- pluralization
+- named placeholders
+- more sophisticated fallback matching
+- incremental loading
+- optional hot reload
+- missing-key metrics
+- integration with external backends

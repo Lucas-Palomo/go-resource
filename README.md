@@ -1,10 +1,12 @@
 # go-resource
 
-**ResourceBundle-inspired internationalization for Go**.
+[English](./README.md) | [Português (Brasil)](./README.pt_br.md)
 
-`go-resource` is a lightweight Go library for managing **dynamic labels, messages, errors and localized texts** from **JSON, YAML and TOML** resource files. The project started with an idea similar to **Java ResourceBundles**, adapted to the Go ecosystem with a small API and a simple file-based workflow.
+**ResourceBundle-inspired internationalization for Go.**
 
-This repository now carries **two major lines**:
+`go-resource` is a lightweight Go library for managing dynamic labels, messages, errors, and localized texts from JSON, YAML, and TOML resource files. The project started with an idea similar to Java ResourceBundles, adapted to the Go ecosystem with a small API and a simple file-based workflow.
+
+This repository carries two major lines:
 
 - **v1** at the repository root: legacy compatibility / maintenance mode
 - **v2** in [`/v2`](./v2): the recommended line for new projects
@@ -21,7 +23,7 @@ In many Go applications, i18n quickly degrades into:
 - fragile fallback behavior
 - unstructured translation files
 
-`go-resource` gives you a cleaner approach with **bundle-style resource catalogs**, closer to the ergonomics that Java developers know from **ResourceBundles**, but expressed in a Go-friendly way.
+`go-resource` gives you a cleaner approach with bundle-style resource catalogs, closer to the ergonomics that Java developers know from ResourceBundles, but expressed in a Go-friendly way.
 
 ## Repository layout
 
@@ -57,7 +59,7 @@ import (
 )
 
 func main() {
-	bundle := resource.NewBundle("./resource", language.English)
+	bundle := resource.NewBundle("./resources", language.English)
 	bundle.Load()
 
 	println(bundle.Get("title"))
@@ -126,9 +128,13 @@ func main() {
 ## Documentation
 
 - [Versioning and release strategy](./docs/versioning-strategy.md)
+- [Versioning and release strategy (pt-BR)](./docs/versioning-strategy.pt_br.md)
 - [Migration from v1 to v2](./v2/docs/migration-v1-to-v2.md)
+- [Migration from v1 to v2 (pt-BR)](./v2/docs/migration-v1-to-v2.pt_br.md)
 - [v2 architecture notes](./v2/docs/architecture.md)
+- [v2 architecture notes (pt-BR)](./v2/docs/architecture.pt_br.md)
 - [v2 API reference](./v2/docs/api-reference.md)
+- [v2 API reference (pt-BR)](./v2/docs/api-reference.pt_br.md)
 
 ## SEO / discoverability
 
