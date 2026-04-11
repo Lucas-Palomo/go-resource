@@ -2,33 +2,52 @@
 
 [English](./versioning-strategy.md) | [Português (Brasil)](./versioning-strategy.pt_br.md)
 
-This repository follows the standard Go major-version strategy.
+This repository uses a **multi-major layout** so the original public v1 can remain compatible while the next major evolves independently.
 
-## v1 line
+## Modules
 
-- module: `github.com/Lucas-Palomo/go-resource`
-- package: `github.com/Lucas-Palomo/go-resource/pkg/resource`
-- status: maintenance / compatibility line
+- root module: `github.com/Lucas-Palomo/go-resource`
+- root package: `github.com/Lucas-Palomo/go-resource/pkg/resource`
+- v2 module: `github.com/Lucas-Palomo/go-resource/v2`
 
-## Why `v1.0.1`
+## Current status
 
-The initial public release exposed library failures through `panic` in the loading path.
-That is not a good default contract for a reusable package.
+### Root / v1
 
-`v1.0.1` exists to correct the root line without forcing a disruptive rewrite.
+- status: **stable maintenance line**
+- recommended release: **`v1.0.1+`**
+- goal: preserve compatibility for existing consumers
+
+### `/v2`
+
+- status: **next major line**
+- goal: carry the architectural rewrite and future evolution
+- release model: publish separately as **`v2.0.0`** under the `/v2` module path
+
+## Why this layout exists
+
+The project had already been published publicly as a v1 module. Because Go major versions require semantic import versioning, the correct path for the next breaking line is `/v2`.
+
+That keeps existing consumers on the root import path while allowing the new line to evolve without breaking v1 users.
+
+## Why `v1.0.1` exists
+
+The initial public release exposed loading failures through `panic`, which is not a solid default contract for a reusable library.
+
+`v1.0.1` exists to stabilize the root line without forcing a disruptive rewrite:
+
+- keep the existing import path
+- stop crashing the process on normal loading failures
+- correct fallback behavior
+- document the supported v1 contract clearly
 
 ## Retract policy
 
-The root `go.mod` retracts `v1.0.0` so consumers see that the initial release should not be used as the recommended version.
-
-## Suggested release flow
-
-1. publish the root maintenance fix as `v1.0.1`
-2. keep future root changes minimal and compatibility-focused
-3. publish the new major line separately as `v2.0.0` under `/v2`
+The root `go.mod` retracts `v1.0.0` so Go tooling signals that the first public release should not be considered the recommended version.
 
 ## Practical consequences
 
 - existing v1 users keep importing `github.com/Lucas-Palomo/go-resource/pkg/resource`
-- v1 remains appropriate for low-risk compatibility maintenance
-- any architectural evolution should happen in v2
+- the root line should receive only low-risk, compatibility-focused changes
+- architectural evolution should happen in `/v2`
+- once `v2.0.0` is published, new projects should prefer `github.com/Lucas-Palomo/go-resource/v2`

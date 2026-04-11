@@ -8,22 +8,33 @@
 import "github.com/Lucas-Palomo/go-resource/pkg/resource"
 ```
 
+## Propósito
+
+A linha v1 é a API com foco em compatibilidade para consumidores que já usam o pacote original. Na `v1.0.1`, a principal melhoria não é uma reescrita. É uma correção de contrato: falhas de carregamento não derrubam mais o processo por padrão.
+
 ## Tipo principal
 
 ### `type Bundle`
 
-Estrutura central da biblioteca. Armazena a raiz configurada de recursos, os catálogos por locale e o estado da locale atual/default.
+Estrutura central da biblioteca. Ela armazena:
+
+- a raiz de recursos configurada
+- os catálogos por locale carregados em memória
+- a locale atual
+- a locale fallback default
+- o último erro de carregamento capturado pelas APIs de compatibilidade
 
 ## Construção
 
 ### `func NewBundle(resourcesFolder string, defaultLocale language.Tag) *Bundle`
 
-Cria um novo bundle para o diretório informado e para a locale default.
+Cria um novo bundle para a raiz de recursos informada e para a locale default.
 
 Comportamento na `v1.0.1`:
+
 - inicializa `currentLocale` com a locale default
 - começa com catálogo em memória vazio
-- mantém compatibilidade com o código de construção já existente
+- preserva compatibilidade com o código de construção já existente
 
 ## Carregamento
 
@@ -31,12 +42,26 @@ Comportamento na `v1.0.1`:
 
 Método legado de carregamento compatível com a API anterior.
 
-Na `v1.0.1`, esse método não usa mais `panic`. Em vez disso, ele registra internamente o último erro de carregamento.
-Use `Err()` logo após a chamada quando precisar inspecionar a falha.
+Na `v1.0.1`, esse método não usa mais `panic`. Em vez disso, ele registra internamente o último erro de carregamento. Chame `Err()` logo após `Load()` quando precisar inspecionar a falha.
+
+```go
+bundle.Load()
+if err := bundle.Err(); err != nil {
+	return err
+}
+```
 
 ### `func (b *Bundle) LoadWithError() error`
 
-Método preferível para código novo. Retorna diretamente qualquer erro de filesystem, parsing de locale, decoder ou formato não suportado.
+Método preferível para código novo.
+
+Ele retorna diretamente erros de filesystem, parsing de locale, decoder ou formato não suportado:
+
+```go
+if err := bundle.LoadWithError(); err != nil {
+	return err
+}
+```
 
 ### `func (b *Bundle) Err() error`
 
@@ -46,11 +71,19 @@ Retorna o último erro de carregamento capturado por `Load()` ou `LoadWithError(
 
 ### `func (b *Bundle) Get(id string, replacers ...any) string`
 
-Resolve a chave usando a locale atual. Se a locale atual não contiver a chave, a locale default é consultada. Se a chave ainda não existir, a própria chave é retornada.
+Resolve uma chave usando a locale atual.
+
+Ordem de resolução na `v1.0.1`:
+
+1. locale atual
+2. locale default
+3. retorna a própria chave se ainda não houver resolução
 
 ### `func (b *Bundle) GetWithLocale(locale language.Tag, id string, replacers ...any) string`
 
-Resolve a chave para uma locale específica sem alterar o estado do bundle. Se a chave não existir, a própria chave é retornada.
+Resolve a chave para uma locale específica sem alterar o estado do bundle.
+
+Se a chave não existir, a própria chave é retornada.
 
 ## Configuração em runtime
 
@@ -67,29 +100,29 @@ Troca a locale atual usada por `Get()`.
 
 ## Regra de nome de arquivo
 
-A v1 espera que cada arquivo de recurso tenha o formato:
-
-```text
-<locale>.<extensão>
-```
+A v1 espera que cada arquivo de recurso use a locale no primeiro segmento do nome do arquivo.
 
 Exemplos:
+
 - `en.json`
 - `pt_BR.yaml`
 - `es.toml`
 
-O primeiro segmento do nome do arquivo é interpretado como locale.
+Diretórios aninhados são permitidos, mas a locale continua sendo extraída do nome do arquivo.
 
 ## Modelo de erro na `v1.0.1`
 
-Erros de carregamento agora voltam como `error` em vez de derrubar o processo com `panic`.
-Casos típicos de falha:
+Casos típicos de falha de carregamento:
+
 - diretório ou arquivo ilegível
 - locale inválida no nome do arquivo
 - extensão não suportada
 - payload JSON / YAML / TOML inválido
 
-## Nota de compatibilidade
+O ponto importante é que essas falhas agora voltam como `error`, em vez de encerrar a aplicação por meio de `panic`.
 
-`Load()` foi preservado para evitar uma quebra de API numa patch release.
-Para qualquer código novo, `LoadWithError()` é a entrada recomendada.
+## Recomendação
+
+Continue na v1 quando compatibilidade for mais importante que mudança arquitetural.
+
+Para sistemas novos ou evolução mais profunda, migre para `/v2`.

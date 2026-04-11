@@ -8,4 +8,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-retract v1.0.0 // initial public release superseded by v1.0.1+
+retract v1.0.0 // initial public release superseded by v1.0.1+ and the new v2 line
