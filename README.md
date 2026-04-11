@@ -1,121 +1,114 @@
-# Go Resource
-This project is a Go package designed to provide internationalization resources. 
-It fetches resource files in different formats (JSON, YAML or TOML) and uses this data for internationalization.
+# go-resource
 
-## How to use
+**ResourceBundle-inspired internationalization for Go.**
 
-The resource folder needs to be organized semantically, as in the following example
+[English](./README.md) | [Português (Brasil)](./README.pt_br.md)
 
-```text
-/resources              # Resources root folder
-|-- errors              # folder for internationalizing errors
-    |-- en.json
-    |-- pt_BR.json
-|-- messages            # folder for internationalizing messages
-    |-- checkout        # message category (example with subfolder)
-        |-- en.json
-        |-- pt_BR.json
+`go-resource` is a lightweight Go library for managing dynamic labels, messages, errors and localized texts from JSON, YAML and TOML resource files. The project started with an idea similar to Java ResourceBundles, adapted to the Go ecosystem with a small API and a simple file-based workflow.
+
+> This package is the **v1 maintenance line**.
+> Version `v1.0.0` was retracted. Use `v1.0.1+` for legacy compatibility.
+
+## Why this release exists
+
+This `v1.0.1` line exists to stabilize the original package before publishing the new major version separately.
+
+Main goals of this patch release:
+- stop using `panic` as the default failure mode in a library
+- preserve the existing import path: `github.com/Lucas-Palomo/go-resource/pkg/resource`
+- keep migration cost small for existing consumers
+- document the supported v1 behavior clearly
+
+## Install
+
+```bash
+go get github.com/Lucas-Palomo/go-resource@v1.0.1
 ```
 
-Another valid structure is
-
-```text
-/resources              # Resources root folder
-|-- en.errors.json
-|-- en.messages.json
-|-- pt_BR.errors.json
-|-- pt_BR.messages.json
-```
- 
-### File content
-
-Example of Resources
-
-**Json**
-```json
-{
-  "title": "My title",
-  "hello": "Hello, %s"
-}
-```
-
-**Toml**
-```toml
-title="My title"
-hello="Hello, %s"
-```
-
-**Yaml**
-```yaml
-title: "My title"
-hello: "Hello, %s"
-```
-
-### Working with the Bundle
+## Quick start
 
 ```go
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/Lucas-Palomo/go-resource/pkg/resource"
 	"golang.org/x/text/language"
 )
 
 func main() {
-	bundle := resource.NewBundle("./resource", language.English) // Resources root folder and a fallback language
-	bundle.Load() // Load all resources files
-	
-	println(bundle.Get("title")) 
-	// or, to pass arguments
-	println(bundle.Get("hello", "Lucas")) // output is "Hello, Lucas"
+	bundle := resource.NewBundle("./resources", language.English)
+
+	if err := bundle.LoadWithError(); err != nil {
+		log.Fatal(err)
+	}
+
+	bundle.SetLocale(language.BrazilianPortuguese)
+
+	fmt.Println(bundle.Get("title"))
+	fmt.Println(bundle.Get("hello", "Lucas"))
 }
 ```
 
-### Working with Multi-language
+## Legacy-compatible loading
 
-**pt_BR.json**
-```json
-{
-  "title": "Meu título",
-  "hello": "Olá, %s"
-}
-```
-
-**en.json**
-```json
-{
-  "title": "My title",
-  "hello": "Hello, %s",
-  "monday": "Today is monday"
-}
-```
-
+The old `Load()` method still exists for compatibility, but it no longer panics.
+Instead, it stores the last loading error internally.
 
 ```go
-package main
-
-import (
-	"github.com/Lucas-Palomo/go-resource/pkg/resource"
-	"golang.org/x/text/language"
-)
-
-func main() {
-	bundle := resource.NewBundle("./resource", language.English) // Resources root folder and a fallback language
-	bundle.Load()
-	
-	bundle.SetLocale(language.BrazilianPortuguese) // Now this is the current bundle language
-	
-	println(bundle.Get("title")) // output is "Meu título"
-	// or, to pass arguments
-	println(bundle.Get("hello", "Lucas")) // output is "Olá, Lucas"
-	
-	// Fallback case
-	println(bundle.Get("monday")) // output is "Today is monday"
-	
-	// Unregistered resource key
-	println(bundle.Get("friday")) // output is the same key "friday"
-	
-	// Force locale
-	println(bundle.GetWithLocale(language.English, "title")) // output is "My title"
+bundle.Load()
+if err := bundle.Err(); err != nil {
+	log.Fatal(err)
 }
 ```
+
+For new code, prefer `LoadWithError()`.
+
+## Supported resource formats
+
+- JSON
+- YAML / YML
+- TOML
+
+## Resource file contract
+
+v1 expects file names in the form:
+
+```text
+<locale>.<ext>
+```
+
+Examples:
+
+```text
+resources/
+  en.json
+  pt_BR.yaml
+  es.toml
+```
+
+Nested directories are allowed. Every valid resource file found under the configured root is merged into the locale catalog.
+
+## Fallback behavior
+
+`Get()` now checks the current locale first and then the configured default locale.
+If the key is still not found, the key itself is returned.
+
+## Documentation
+
+- [Versioning and release strategy](./docs/versioning-strategy.md)
+- [Estratégia de versionamento e release](./docs/versioning-strategy.pt_br.md)
+- [v1 reference](./docs/v1-reference.md)
+- [Referência da v1](./docs/v1-reference.pt_br.md)
+
+## Package path
+
+```go
+import "github.com/Lucas-Palomo/go-resource/pkg/resource"
+```
+
+## License
+
+This repository is distributed under **The Unlicense**.
