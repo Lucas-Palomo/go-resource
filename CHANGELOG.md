@@ -1,5 +1,7 @@
 # Changelog
 
+[English](./CHANGELOG.md) | [Português (Brasil)](./CHANGELOG.pt_br.md)
+
 ## [v1.0.1] - 2026-04-11
 
 ### Changed

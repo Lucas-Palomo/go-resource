@@ -1,5 +1,7 @@
 # v1 Reference
 
+[English](./v1-reference.md) | [Português (Brasil)](./v1-reference.pt_br.md)
+
 ## Package
 
 ```go

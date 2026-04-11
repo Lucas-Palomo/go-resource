@@ -1,5 +1,7 @@
 # Versioning and Release Strategy
 
+[English](./versioning-strategy.md) | [Português (Brasil)](./versioning-strategy.pt_br.md)
+
 This repository follows the standard Go major-version strategy.
 
 ## v1 line

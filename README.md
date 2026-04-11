@@ -2,6 +2,8 @@
 
 **ResourceBundle-inspired internationalization for Go.**
 
+[English](./README.md) | [Português (Brasil)](./README.pt_br.md)
+
 `go-resource` is a lightweight Go library for managing dynamic labels, messages, errors and localized texts from JSON, YAML and TOML resource files. The project started with an idea similar to Java ResourceBundles, adapted to the Go ecosystem with a small API and a simple file-based workflow.
 
 > This package is the **v1 maintenance line**.
