@@ -2,7 +2,9 @@
 
 [English](./CHANGELOG.md) | [Português (Brasil)](./CHANGELOG.pt_br.md)
 
-## v2.0.0
+This changelog tracks the **v2 module** (`github.com/Lucas-Palomo/go-resource/v2`).
+
+## [v2.0.0] - Unreleased
 
 ### Added
 
@@ -22,13 +24,13 @@
 
 ### Changed
 
-- the module now follows semantic import versioning with `/v2`
-- error flows no longer use `panic` as the primary path
-- locale fallback behavior was corrected
-- markdown documentation was normalized to English with pt-BR companion files
+- the module follows semantic import versioning through `/v2`
+- error flows no longer rely on `panic` as the primary path
+- locale fallback behavior was made explicit and predictable
+- markdown documentation was aligned into English and pt-BR companion files
 
 ### Fixed
 
-- structural fallback bug when the current locale did not exist
-- excessive coupling between parsing, walking, and lookup
-- malformed `doc.go` package comment that could break package documentation
+- structural fallback bug seen in the old line when the current locale did not exist
+- excessive coupling between parsing, walking, and lookup responsibilities
+- package documentation issues in `doc.go`

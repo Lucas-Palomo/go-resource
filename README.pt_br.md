@@ -4,26 +4,35 @@
 
 **Internacionalização para Go inspirada em ResourceBundle.**
 
-`go-resource` é uma biblioteca leve em Go para gerenciar labels, mensagens, erros e textos localizados a partir de arquivos de recurso em JSON, YAML e TOML. O projeto nasceu com uma ideia parecida com Java ResourceBundles, adaptada ao ecossistema Go com uma API pequena e um fluxo simples baseado em arquivos.
+`go-resource` é uma biblioteca de i18n baseada em arquivos para Go, inspirada no Java ResourceBundle e adaptada para um fluxo idiomático no ecossistema Go. Ela permite carregar labels, mensagens e erros localizados a partir de arquivos de recurso, em vez de espalhar textos por handlers, services e código de domínio.
 
-Este repositório carrega duas linhas principais:
+Atualmente, este repositório carrega **duas linhas**:
 
-- **v1** na raiz do repositório: compatibilidade legada / modo de manutenção
-- **v2** em [`/v2`](./v2): a linha recomendada para novos projetos
+- **v1** na raiz do repositório  
+  Linha estável de manutenção para consumidores existentes. Release estável atual: **`v1.0.1`**.
+- **v2** em [`/v2`](./v2)  
+  Próxima major do projeto. Ela contém a reescrita arquitetural e a nova API.
 
-> A versão `v1.0.0` foi retraída. Use `v1.0.1+` para a linha legada ou migre para `v2` em novos trabalhos.
+> `v1.0.0` foi retraída. Use `v1.0.1+` para a linha legada.
+>
+> Se você consome apenas releases tagueadas, permaneça na **v1.0.1** até que **`v2.0.0`** seja publicada.
 
-## Por que este projeto existe
+## Qual linha você deve usar?
 
-Em muitas aplicações Go, i18n rapidamente degrada para:
+### Use a v1 quando
 
-- textos hardcoded espalhados em handlers e services
-- troca de locale embutida na regra de negócio
-- catálogos duplicados
-- fallback frágil
-- arquivos de tradução sem estrutura
+- você já importa `github.com/Lucas-Palomo/go-resource/pkg/resource`
+- você quer o menor custo de migração possível
+- você só precisa da API original com as correções de estabilidade da `v1.0.1`
 
-`go-resource` oferece uma abordagem mais limpa com catálogos de recursos em estilo bundle, mais próxima da ergonomia que desenvolvedores Java conhecem com ResourceBundles, mas expressa de um jeito idiomático para Go.
+### Use a v2 quando
+
+- você está começando trabalho novo ou uma migração estruturada
+- precisa de tratamento explícito de erro
+- quer suporte a `fs.FS` / `embed.FS`
+- quer objetos aninhados achatados em notação por ponto
+- precisa de políticas configuráveis para chaves ausentes e duplicadas
+- quer suporte nativo a arquivos `.properties` no estilo Java
 
 ## Layout do repositório
 
@@ -31,6 +40,7 @@ Em muitas aplicações Go, i18n rapidamente degrada para:
 .
 ├── go.mod                    # módulo v1: github.com/Lucas-Palomo/go-resource
 ├── pkg/resource              # pacote v1
+├── docs                      # documentação da raiz/v1
 └── v2                        # módulo v2: github.com/Lucas-Palomo/go-resource/v2
 ```
 
@@ -39,13 +49,27 @@ Em muitas aplicações Go, i18n rapidamente degrada para:
 ### v1
 
 ```bash
-go get github.com/Lucas-Palomo/go-resource@latest
+go get github.com/Lucas-Palomo/go-resource@v1.0.1
+```
+
+Caminho de import:
+
+```go
+import "github.com/Lucas-Palomo/go-resource/pkg/resource"
 ```
 
 ### v2
 
+Depois que a primeira tag da v2 for publicada:
+
 ```bash
 go get github.com/Lucas-Palomo/go-resource/v2@latest
+```
+
+Caminho de import:
+
+```go
+import resource "github.com/Lucas-Palomo/go-resource/v2"
 ```
 
 ## Quick start da v1
@@ -54,16 +78,24 @@ go get github.com/Lucas-Palomo/go-resource/v2@latest
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/Lucas-Palomo/go-resource/pkg/resource"
 	"golang.org/x/text/language"
 )
 
 func main() {
 	bundle := resource.NewBundle("./resources", language.English)
-	bundle.Load()
 
-	println(bundle.Get("title"))
-	println(bundle.Get("hello", "Lucas"))
+	if err := bundle.LoadWithError(); err != nil {
+		log.Fatal(err)
+	}
+
+	bundle.SetLocale(language.BrazilianPortuguese)
+
+	fmt.Println(bundle.Get("title"))
+	fmt.Println(bundle.Get("hello", "Lucas"))
 }
 ```
 
@@ -90,20 +122,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(bundle.Get("title"))
+	fmt.Println(bundle.Get("checkout.title"))
 	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
+	fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
 
-## Formatos suportados
+## Organização dos recursos
 
-- JSON
-- YAML / YML
-- TOML
-
-## Estruturas de recursos
-
-### Baseada em pastas
+As duas linhas aceitam estruturas semânticas de diretórios como:
 
 ```text
 /resources
@@ -116,7 +143,7 @@ func main() {
       pt_BR.yaml
 ```
 
-### Baseada em nomes de arquivo
+O projeto também aceita namespace por nome de arquivo:
 
 ```text
 /resources
@@ -125,27 +152,52 @@ func main() {
   en.messages.checkout.toml
 ```
 
+Na v2, objetos aninhados são achatados automaticamente. Exemplo:
+
+```json
+{
+  "checkout": {
+    "button": {
+      "confirm": "Confirm"
+    }
+  }
+}
+```
+
+vira:
+
+```text
+checkout.button.confirm
+```
+
+## Formatos suportados
+
+### v1
+
+- JSON
+- YAML / YML
+- TOML
+
+### v2
+
+- JSON
+- YAML / YML
+- TOML
+- `.properties` no estilo Java
+
 ## Documentação
 
+### v1
+
 - [Estratégia de versionamento e release](./docs/versioning-strategy.pt_br.md)
-- [Versioning and release strategy](./docs/versioning-strategy.md)
-- [Migração da v1 para a v2](./v2/docs/migration-v1-to-v2.pt_br.md)
-- [Migration from v1 to v2](./v2/docs/migration-v1-to-v2.md)
-- [Notas de arquitetura da v2](./v2/docs/architecture.pt_br.md)
-- [v2 architecture notes](./v2/docs/architecture.md)
+- [Referência da API da v1](./docs/v1-reference.pt_br.md)
+
+### v2
+
+- [README da v2](./v2/README.pt_br.md)
 - [Referência da API da v2](./v2/docs/api-reference.pt_br.md)
-- [v2 API reference](./v2/docs/api-reference.md)
-
-## SEO / descoberta
-
-Palavras-chave relevantes para este projeto:
-
-- biblioteca de i18n para Golang
-- pacote de internacionalização para Go
-- ResourceBundle para Go
-- alternativa ao Java ResourceBundle em Go
-- labels e mensagens localizadas em Go
-- i18n baseado em arquivos para Golang
+- [Notas de arquitetura da v2](./v2/docs/architecture.pt_br.md)
+- [Migração da v1 para a v2](./v2/docs/migration-v1-to-v2.pt_br.md)
 
 ## Licença
 

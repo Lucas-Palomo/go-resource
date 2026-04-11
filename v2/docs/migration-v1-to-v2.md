@@ -4,41 +4,38 @@
 
 ## Executive summary
 
-v2 changes the project from a small package useful for simple scenarios into a stronger base for real use in libraries, frameworks, and larger applications. The main change is not cosmetic. It corrects the API contract.
+v2 is not a cosmetic rewrite. It corrects the library contract and gives the project a stronger base for long-term evolution.
+
+The practical rule is simple:
+
+- stay on v1.0.1 when compatibility is the main goal
+- migrate to v2 when you need a stronger API and room to grow
 
 ## Core problems in v1
 
 ### 1. `panic` as error flow
 
-In v1, file-reading failures, parsing problems, and invalid formats crash the application. That is a bad contract for a library. The consumer must decide how to handle the error.
+Historically, v1 surfaced loading failures through `panic`. That is not a good default for a reusable library.
 
 ### 2. Fallback bug
 
-In v1, `Get()` tries to fall back to the default locale when the current locale does not resolve the message. The problem is that `GetWithLocale()` returns the key itself when the locale does not exist, so the result is not empty and the fallback does not happen as expected.
+In the old line, `Get()` attempted to fall back to the default locale, but the interaction with `GetWithLocale()` could prevent the fallback from happening correctly when the current locale did not exist.
 
 ### 3. Coupled responsibilities
 
-The same file mixes:
-
-- directory walking
-- format parsing
-- message merging
-- locale selection
-- string formatting
-
-That makes evolution, testing, and maintenance harder.
+Directory walking, parsing, message merging, locale selection, and formatting lived too close together.
 
 ### 4. No `fs.FS`
 
-v1 ties consumption to the traditional filesystem. That limits usage with `embed.FS`.
+The old line was tied to the traditional filesystem, which limited usage with `embed.FS`.
 
-### 5. No formal policy for collisions and missing keys
+### 5. No explicit policy for missing keys and duplicates
 
-When a key is repeated, the behavior is not an explicit API decision. When a key does not exist, the return behavior is also not configurable.
+Behavior existed, but it was not a clearly configurable API decision.
 
-### 6. No support for nested objects
+### 6. No first-class nested object support
 
-v1 works in practice with `map[string]string`. That limits organization for larger catalogs.
+Larger catalogs become harder to organize when everything must effectively behave like a flat `map[string]string`.
 
 ## Breaking changes
 
@@ -67,18 +64,18 @@ bundle := resource.New(
 )
 
 if err := bundle.LoadDir("./resources"); err != nil {
-	panic(err)
+	return err
 }
 ```
 
-### 3. Loading
+### 3. Loading API
 
 v2 separates loading by source:
 
 - `LoadDir(root string)`
 - `LoadFS(fsys fs.FS, root string)`
 
-### 4. Lookup
+### 4. Lookup API
 
 #### v1
 
@@ -97,7 +94,10 @@ value, err := bundle.Lookup("hello", "Lucas")
 value, err := bundle.LookupFor(language.English, "hello", "Lucas")
 ```
 
-`Lookup` is the preferred API when you want explicit error control.
+Rule of thumb:
+
+- use `Get` / `GetFor` for convenience
+- use `Lookup` / `LookupFor` when explicit error handling matters
 
 ### 5. Nested structures
 
@@ -111,7 +111,7 @@ value, err := bundle.LookupFor(language.English, "hello", "Lucas")
 
 #### v2
 
-Besides the flat format, v2 also accepts:
+v2 still accepts flat files, but it also accepts nested objects:
 
 ```json
 {
@@ -124,12 +124,12 @@ Besides the flat format, v2 also accepts:
 }
 ```
 
-That becomes:
+which become:
 
 - `checkout.title`
 - `checkout.button.confirm`
 
-### 6. Namespacing by folder and filename
+### 6. Namespace by directory and filename
 
 Example:
 
@@ -137,7 +137,7 @@ Example:
 resources/errors/en.json
 ```
 
-with content:
+with:
 
 ```json
 {
@@ -153,7 +153,11 @@ becomes:
 errors.validation.required
 ```
 
-## New capabilities
+### 7. `.properties` support
+
+v2 adds native support for Java-style `.properties` files. That matters if your existing translation assets already use that format.
+
+## New capabilities in v2
 
 ### Missing-key strategy
 
@@ -184,23 +188,28 @@ bundle.HasFor(language.English, "checkout.title")
 bundle.Reset()
 ```
 
-## Recommended adoption strategy
+## Recommended migration strategy
 
 ### Conservative migration
 
-- keep the current file structure
+Use this path when you want the smallest operational change.
+
 - change the import to `/v2`
 - initialize with `resource.New(...)`
 - replace `Load()` with `LoadDir()`
+- keep the current file layout initially
 - keep using `Get()` at first
-- later evolve to `Lookup()` where you need explicit control
+- migrate specific flows to `Lookup()` where explicit control is valuable
 
 ### Structural migration
 
-- reorganize messages by namespace
-- convert flat files into nested objects
+Use this path when you want to extract more value from v2.
+
+- reorganize resources by namespace
+- convert flat files into nested objects where it helps readability
 - enable `ErrorOnDuplicate`
-- enable `ErrorOnMissing` in test environments
+- enable `ErrorOnMissing` in tests or validation pipelines
+- adopt `.properties` where Java compatibility matters
 
 ## Full example
 
@@ -226,4 +235,6 @@ fmt.Println(msg)
 
 ## Final recommendation
 
-Use v2 as the long-term foundation. v1 can continue to exist for compatibility, but it should not be the main line of evolution.
+Keep v1 for compatibility.
+
+Choose v2 for the main line of evolution.

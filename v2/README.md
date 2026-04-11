@@ -2,41 +2,50 @@
 
 [English](./README.md) | [Português (Brasil)](./README.pt_br.md)
 
-**ResourceBundle-style i18n for Go** — a modernized, safer, and more extensible rewrite of `go-resource`, inspired by the idea of Java ResourceBundles and tailored for Golang internationalization.
+**ResourceBundle-style i18n for Go** — a modernized, safer, and more extensible rewrite of `go-resource`.
 
-This is the **recommended line for new projects**.
+This module is the **next major line** of the project. It is the long-term direction of the library and the recommended migration target for users that outgrow v1.
 
-## Install
+> Until `v2.0.0` is tagged, consumers that only use stable releases should remain on `v1.0.1`.
+
+## Module path
+
+```go
+import resource "github.com/Lucas-Palomo/go-resource/v2"
+```
+
+## Installation
+
+After the first v2 release is published:
 
 ```bash
 go get github.com/Lucas-Palomo/go-resource/v2@latest
 ```
 
-## Import
-
-```go
-import (
-	resource "github.com/Lucas-Palomo/go-resource/v2"
-	"golang.org/x/text/language"
-)
-```
-
 ## Why v2 exists
 
-The original v1 worked well for small projects, but it mixed directory walking, parsing, loading, and lookup into a single flow, used `panic` in the main path, and had fallback behavior that could become inconsistent when a locale was missing.
+v1 was useful for small projects, but it had structural limits:
 
-v2 introduces:
+- loading failures were historically surfaced through `panic`
+- directory walking, parsing, loading, fallback, and lookup were tightly coupled
+- there was no `fs.FS` / `embed.FS` support
+- missing keys and duplicate keys had no explicit policy
+- nested objects were not a first-class resource model
+
+v2 fixes the contract instead of only changing names.
+
+## What v2 adds
 
 - explicit error handling
-- `LoadDir` and `LoadFS`
-- support for `embed.FS`
+- `LoadDir(root string)` and `LoadFS(fsys fs.FS, root string)`
+- support for `fs.FS` and `embed.FS`
 - JSON, YAML, TOML, and Java-style `.properties` decoders
-- flattening of nested structures with dot notation
+- flattening of nested structures into dot notation
+- namespacing by directory and filename segments
 - predictable fallback resolution
-- configurable behavior for missing keys and duplicate keys
+- configurable policies for missing keys and duplicate keys
 - thread-safe reads
-- package-level examples for pkg.go.dev style documentation
-- helper inspection methods such as `Has`, `HasFor`, and `Reset`
+- helpers such as `Has`, `HasFor`, and `Reset`
 
 ## Resource file conventions
 
@@ -62,18 +71,22 @@ v2 introduces:
   en.messages.checkout.toml
 ```
 
-### Java-style `.properties` files
+### Java-style `.properties`
 
 ```properties
 title = Checkout
 checkout.hello = Hello, %s
 errors.validation.required: Required
-checkout.description = Confirm your order \
-  before leaving
-welcome = Ol\u00E1
+checkout.description = Confirm your order  before leaving
+welcome = Olá
 ```
 
-This format supports the usual Java-style separators (`=`, `:`, or whitespace), comments with `#` or `!`, line continuation with a trailing backslash, and escape sequences such as `\t`, `\n`, and `\uXXXX`.
+Supported `.properties` features:
+
+- separators: `=`, `:`, or whitespace
+- comments with `#` or `!`
+- line continuation with trailing backslash
+- escape sequences such as `\t`, `\n`, and `\uXXXX`
 
 ### Nested objects
 
@@ -116,23 +129,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(bundle.Get("title"))
+	fmt.Println(bundle.Get("checkout.title"))
 	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
 	fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
 
-Runnable examples are available in [`./examples/basic`](./examples/basic) and [`./examples/properties`](./examples/properties).
+Runnable examples are available in:
+
+- [`./examples/basic`](./examples/basic)
+- [`./examples/properties`](./examples/properties)
 
 ## Docs
 
 - [API reference](./docs/api-reference.md)
-- [API reference (pt-BR)](./docs/api-reference.pt_br.md)
 - [Architecture notes](./docs/architecture.md)
-- [Architecture notes (pt-BR)](./docs/architecture.pt_br.md)
 - [Migration guide](./docs/migration-v1-to-v2.md)
-- [Migration guide (pt-BR)](./docs/migration-v1-to-v2.pt_br.md)
 
-## Repository note
+## Relationship with the repository root
 
-The repository root keeps the legacy v1 module for compatibility. This module lives in `/v2` to preserve Go major-version compatibility.
+The repository root keeps the v1 maintenance line for compatibility. The new major lives under `/v2` to preserve Go semantic import versioning.

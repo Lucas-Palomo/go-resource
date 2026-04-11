@@ -2,27 +2,52 @@
 
 [English](./versioning-strategy.md) | [Português (Brasil)](./versioning-strategy.pt_br.md)
 
-Este repositório usa um **layout multi-major**:
+Este repositório usa um **layout multi-major** para que a v1 pública original continue compatível enquanto a próxima major evolui de forma independente.
+
+## Módulos
 
 - módulo raiz: `github.com/Lucas-Palomo/go-resource`
+- pacote raiz: `github.com/Lucas-Palomo/go-resource/pkg/resource`
 - módulo v2: `github.com/Lucas-Palomo/go-resource/v2`
 
-## Por quê
+## Status atual
 
-O projeto já havia sido publicado publicamente como módulo v1. Para não quebrar consumidores existentes, a nova major vive em `/v2`.
+### Raiz / v1
+
+- status: **linha estável de manutenção**
+- release recomendada: **`v1.0.1+`**
+- objetivo: preservar compatibilidade para consumidores existentes
+
+### `/v2`
+
+- status: **próxima major**
+- objetivo: carregar a reescrita arquitetural e a evolução futura
+- modelo de release: publicar separadamente como **`v2.0.0`** no path de módulo `/v2`
+
+## Por que esse layout existe
+
+O projeto já havia sido publicado publicamente como módulo v1. Como o Go exige semantic import versioning para novas majors, o path correto para a próxima linha com breaking changes é `/v2`.
+
+Isso mantém consumidores existentes no import path da raiz e permite que a nova linha evolua sem quebrar usuários da v1.
+
+## Por que a `v1.0.1` existe
+
+A release pública inicial expunha falhas de carregamento por meio de `panic`, o que não é um contrato sólido para uma biblioteca reutilizável.
+
+A `v1.0.1` existe para estabilizar a linha raiz sem forçar uma reescrita disruptiva:
+
+- manter o import path existente
+- parar de derrubar o processo em falhas normais de carregamento
+- corrigir o comportamento de fallback
+- documentar com clareza o contrato suportado da v1
 
 ## Política de retract
 
-O `go.mod` da raiz retrai `v1.0.0` para sinalizar que a primeira release pública não deve ser usada como versão recomendada.
-
-Fluxo sugerido de release:
-
-1. manter a raiz como linha legada da v1
-2. publicar uma tag corrigida na raiz, como `v1.0.1`
-3. publicar a nova major em `/v2` como `v2.0.0`
+O `go.mod` da raiz retrai `v1.0.0` para que o tooling do Go sinalize que a primeira release pública não deve ser considerada a versão recomendada.
 
 ## Consequências práticas
 
 - usuários existentes da v1 continuam importando `github.com/Lucas-Palomo/go-resource/pkg/resource`
-- novos projetos devem preferir `github.com/Lucas-Palomo/go-resource/v2`
-- a v1 pode receber manutenção mínima de compatibilidade enquanto a v2 evolui de forma independente
+- a linha da raiz deve receber apenas mudanças de baixo risco e foco em compatibilidade
+- a evolução arquitetural deve acontecer em `/v2`
+- quando `v2.0.0` for publicada, projetos novos devem preferir `github.com/Lucas-Palomo/go-resource/v2`

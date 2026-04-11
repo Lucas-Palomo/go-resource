@@ -12,7 +12,7 @@ import resource "github.com/Lucas-Palomo/go-resource/v2"
 
 ### `type Bundle`
 
-Core structure of the library. It stores catalogs by locale, registered decoders, and lookup strategies.
+Core structure of the library. It stores loaded catalogs by locale, registered decoders, current locale state, fallback configuration, and lookup strategies.
 
 ### `type Decoder`
 
@@ -26,11 +26,13 @@ type Decoder interface {
 
 ### `type DecoderFunc`
 
-Adapter used to register a decoder from a function.
+Adapter that allows a decoder to be registered from a function.
 
 ### `type MissingKeyStrategy`
 
-Controls the behavior when a key is not found.
+Controls what happens when a key cannot be resolved.
+
+Available values:
 
 - `ReturnKeyOnMissing`
 - `ReturnEmptyOnMissing`
@@ -38,18 +40,25 @@ Controls the behavior when a key is not found.
 
 ### `type DuplicateKeyStrategy`
 
-Controls the behavior when the same key is declared more than once.
+Controls what happens when the same logical key is declared more than once.
+
+Available values:
 
 - `OverwriteOnDuplicate`
 - `ErrorOnDuplicate`
 
-## Construction and options
+## Construction
 
 ### `func New(opts ...Option) *Bundle`
 
-Creates a bundle with built-in decoders for JSON, YAML, YML, TOML, and Java-style `.properties` files.
+Creates a new bundle with built-in decoders for:
 
-Example:
+- JSON
+- YAML / YML
+- TOML
+- Java-style `.properties`
+
+Typical initialization:
 
 ```go
 bundle := resource.New(
@@ -58,27 +67,29 @@ bundle := resource.New(
 )
 ```
 
+## Options
+
 ### `func WithFallbackLocale(locale language.Tag) Option`
 
-Sets the bundle fallback locale.
+Sets the fallback locale consulted by lookup operations.
 
 ### `func WithLocale(locale language.Tag) Option`
 
-Sets the initial locale used by `Get` and `Lookup`.
+Sets the initial locale used by `Get`, `Lookup`, `Has`, and related helpers.
 
 ### `func WithMissingKeyStrategy(strategy MissingKeyStrategy) Option`
 
-Sets the policy for missing keys.
+Defines the missing-key policy.
 
 ### `func WithDuplicateKeyStrategy(strategy DuplicateKeyStrategy) Option`
 
-Sets the policy for duplicate keys.
+Defines the duplicate-key policy.
 
 ## Loading
 
 ### `func (b *Bundle) LoadDir(root string) error`
 
-Loads resources from an operating system directory.
+Loads resources from a directory in the operating system filesystem.
 
 ```go
 if err := bundle.LoadDir("./resources"); err != nil {
@@ -94,15 +105,15 @@ Loads resources from any `fs.FS`, including `embed.FS`.
 
 ### `func (b *Bundle) Lookup(key string, args ...any) (string, error)`
 
-Resolves a key using the current locale and fallback chain.
+Preferred API for serious usage. Resolves a key using the current locale and the fallback chain, returning an explicit `error` when configured to do so.
 
 ### `func (b *Bundle) LookupFor(locale language.Tag, key string, args ...any) (string, error)`
 
-Resolves a key for a specific locale without mutating the bundle state.
+Resolves a key for a specific locale without mutating bundle state.
 
 ### `func (b *Bundle) Get(key string, args ...any) string`
 
-Ergonomic shortcut for `Lookup`. Useful for simple use cases and mental continuity with v1.
+Ergonomic shortcut for `Lookup`. It exists for simpler usage and continuity with v1.
 
 ### `func (b *Bundle) GetFor(locale language.Tag, key string, args ...any) string`
 
@@ -110,11 +121,11 @@ Ergonomic shortcut for `LookupFor`.
 
 ### `func (b *Bundle) Has(key string) bool`
 
-Reports whether a key can be resolved for the current locale and fallback chain.
+Reports whether a key can be resolved through the current locale and fallback chain.
 
 ### `func (b *Bundle) HasFor(locale language.Tag, key string) bool`
 
-Reports whether a key can be resolved for a specific locale and fallback chain.
+Reports whether a key can be resolved for a specific locale and its fallback chain.
 
 ## Runtime configuration
 
@@ -124,7 +135,7 @@ Changes the current locale of the bundle.
 
 ### `func (b *Bundle) RegisterDecoder(ext string, decoder Decoder)`
 
-Registers a new decoder for an extension.
+Registers a new decoder for a file extension.
 
 ```go
 bundle.RegisterDecoder(".ini", myDecoder)
@@ -134,7 +145,7 @@ bundle.RegisterDecoder(".ini", myDecoder)
 
 Clears loaded catalogs while preserving runtime configuration and registered decoders.
 
-## Inspection
+## Inspection helpers
 
 ### `func (b *Bundle) Locale() language.Tag`
 
@@ -146,15 +157,15 @@ Returns the configured fallback locale.
 
 ### `func (b *Bundle) Locales() []language.Tag`
 
-Lists the loaded locales.
+Lists loaded locales.
 
 ### `func (b *Bundle) Catalog(locale language.Tag) Catalog`
 
-Returns a defensive copy of the flattened catalog for that locale.
+Returns a defensive copy of the flattened catalog for the given locale.
 
 ### `func (b *Bundle) Loaded() bool`
 
-Reports whether at least one loading operation completed successfully.
+Reports whether at least one load operation has completed successfully.
 
 ## Built-in decoders
 
@@ -184,4 +195,4 @@ Returned when `ErrorOnDuplicate` is enabled and a key is declared more than once
 
 ### `type ResourceFileNameError`
 
-Returned when the file name does not follow the expected contract.
+Returned when a resource file name does not follow the expected contract.

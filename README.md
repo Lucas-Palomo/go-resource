@@ -4,26 +4,35 @@
 
 **ResourceBundle-inspired internationalization for Go.**
 
-`go-resource` is a lightweight Go library for managing dynamic labels, messages, errors, and localized texts from JSON, YAML, and TOML resource files. The project started with an idea similar to Java ResourceBundles, adapted to the Go ecosystem with a small API and a simple file-based workflow.
+`go-resource` is a file-based i18n library for Go, inspired by Java ResourceBundles and adapted to a Go-first workflow. It allows applications to load localized labels, messages, and errors from resource files instead of scattering strings across handlers, services, and domain code.
 
-This repository carries two major lines:
+This repository currently carries **two lines**:
 
-- **v1** at the repository root: legacy compatibility / maintenance mode
-- **v2** in [`/v2`](./v2): the recommended line for new projects
+- **v1** at the repository root  
+  Stable maintenance line for existing consumers. Current stable release: **`v1.0.1`**.
+- **v2** in [`/v2`](./v2)  
+  Next major line of the project. It contains the architectural rewrite and the new API.
 
-> Version `v1.0.0` was retracted. Use `v1.0.1+` for the legacy line or migrate to `v2` for new work.
+> `v1.0.0` was retracted. Use `v1.0.1+` for the legacy line.
+>
+> If you only consume tagged releases, stay on **v1.0.1** until **`v2.0.0`** is published.
 
-## Why this project exists
+## Which line should you use?
 
-In many Go applications, i18n quickly degrades into:
+### Use v1 when
 
-- hardcoded texts spread across handlers and services
-- locale switches embedded in business logic
-- duplicated message catalogs
-- fragile fallback behavior
-- unstructured translation files
+- you already import `github.com/Lucas-Palomo/go-resource/pkg/resource`
+- you want the lowest migration cost
+- you only need the original API plus the `v1.0.1` stability fixes
 
-`go-resource` gives you a cleaner approach with bundle-style resource catalogs, closer to the ergonomics that Java developers know from ResourceBundles, but expressed in a Go-friendly way.
+### Use v2 when
+
+- you are planning new work or a structured migration
+- you need explicit error handling
+- you want `fs.FS` / `embed.FS` support
+- you want nested objects flattened into dot notation
+- you need configurable policies for missing keys and duplicate keys
+- you want native support for Java-style `.properties` files
 
 ## Repository layout
 
@@ -31,6 +40,7 @@ In many Go applications, i18n quickly degrades into:
 .
 ├── go.mod                    # v1 module: github.com/Lucas-Palomo/go-resource
 ├── pkg/resource              # v1 package
+├── docs                      # root/v1 documentation
 └── v2                        # v2 module: github.com/Lucas-Palomo/go-resource/v2
 ```
 
@@ -39,13 +49,27 @@ In many Go applications, i18n quickly degrades into:
 ### v1
 
 ```bash
-go get github.com/Lucas-Palomo/go-resource@latest
+go get github.com/Lucas-Palomo/go-resource@v1.0.1
+```
+
+Import path:
+
+```go
+import "github.com/Lucas-Palomo/go-resource/pkg/resource"
 ```
 
 ### v2
 
+After the first v2 tag is published:
+
 ```bash
 go get github.com/Lucas-Palomo/go-resource/v2@latest
+```
+
+Import path:
+
+```go
+import resource "github.com/Lucas-Palomo/go-resource/v2"
 ```
 
 ## v1 quick start
@@ -54,16 +78,24 @@ go get github.com/Lucas-Palomo/go-resource/v2@latest
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/Lucas-Palomo/go-resource/pkg/resource"
 	"golang.org/x/text/language"
 )
 
 func main() {
 	bundle := resource.NewBundle("./resources", language.English)
-	bundle.Load()
 
-	println(bundle.Get("title"))
-	println(bundle.Get("hello", "Lucas"))
+	if err := bundle.LoadWithError(); err != nil {
+		log.Fatal(err)
+	}
+
+	bundle.SetLocale(language.BrazilianPortuguese)
+
+	fmt.Println(bundle.Get("title"))
+	fmt.Println(bundle.Get("hello", "Lucas"))
 }
 ```
 
@@ -90,20 +122,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(bundle.Get("title"))
+	fmt.Println(bundle.Get("checkout.title"))
 	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
+	fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
 
-## Supported resource formats
+## Resource organization
 
-- JSON
-- YAML / YML
-- TOML
-
-## Resource structures
-
-### Folder-based
+Both lines accept semantic directory structures such as:
 
 ```text
 /resources
@@ -116,7 +143,7 @@ func main() {
       pt_BR.yaml
 ```
 
-### Filename-based
+The project also supports filename-based namespacing:
 
 ```text
 /resources
@@ -125,27 +152,52 @@ func main() {
   en.messages.checkout.toml
 ```
 
+In v2, nested objects are flattened automatically. Example:
+
+```json
+{
+  "checkout": {
+    "button": {
+      "confirm": "Confirm"
+    }
+  }
+}
+```
+
+becomes:
+
+```text
+checkout.button.confirm
+```
+
+## Supported formats
+
+### v1
+
+- JSON
+- YAML / YML
+- TOML
+
+### v2
+
+- JSON
+- YAML / YML
+- TOML
+- Java-style `.properties`
+
 ## Documentation
 
+### v1
+
 - [Versioning and release strategy](./docs/versioning-strategy.md)
-- [Versioning and release strategy (pt-BR)](./docs/versioning-strategy.pt_br.md)
-- [Migration from v1 to v2](./v2/docs/migration-v1-to-v2.md)
-- [Migration from v1 to v2 (pt-BR)](./v2/docs/migration-v1-to-v2.pt_br.md)
-- [v2 architecture notes](./v2/docs/architecture.md)
-- [v2 architecture notes (pt-BR)](./v2/docs/architecture.pt_br.md)
+- [v1 API Reference](./docs/v1-reference.md)
+
+### v2
+
+- [v2 README](./v2/README.md)
 - [v2 API reference](./v2/docs/api-reference.md)
-- [v2 API reference (pt-BR)](./v2/docs/api-reference.pt_br.md)
-
-## SEO / discoverability
-
-Relevant keywords for this project:
-
-- Golang i18n library
-- Go internationalization package
-- ResourceBundle for Go
-- Java ResourceBundle alternative in Go
-- localized labels and messages in Go
-- file-based i18n for Golang
+- [v2 architecture notes](./v2/docs/architecture.md)
+- [Migration from v1 to v2](./v2/docs/migration-v1-to-v2.md)
 
 ## License
 

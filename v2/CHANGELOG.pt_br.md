@@ -2,17 +2,19 @@
 
 [English](./CHANGELOG.md) | [Português (Brasil)](./CHANGELOG.pt_br.md)
 
-## v2.0.0
+Este changelog acompanha o **módulo v2** (`github.com/Lucas-Palomo/go-resource/v2`).
 
-### Added
+## [v2.0.0] - Não lançado
+
+### Adicionado
 
 - nova API baseada em `resource.New(...Option)`
 - `LoadDir` e `LoadFS`
 - suporte a `fs.FS` e `embed.FS`
 - flatten de objetos aninhados
-- namespace por pastas e por segmentos do nome do arquivo
+- namespacing por pastas e por segmentos do nome do arquivo
 - `Lookup` e `LookupFor`
-- estratégias configuráveis para chave ausente e chave duplicada
+- estratégias configuráveis para chaves ausentes e duplicadas
 - `Decoder` extensível
 - documentação de migração e arquitetura
 - recursos de exemplo executáveis
@@ -20,15 +22,15 @@
 - `Has`, `HasFor` e `Reset`
 - suporte nativo a decoder de arquivos `.properties` no estilo Java
 
-### Changed
+### Alterado
 
-- o módulo agora segue semantic import versioning com `/v2`
-- erros deixam de usar `panic` como caminho principal
-- o comportamento de fallback de locale foi corrigido
-- a documentação markdown foi normalizada para inglês com arquivos companheiros em pt-BR
+- o módulo segue semantic import versioning por meio de `/v2`
+- o fluxo de erro deixa de depender de `panic` como caminho principal
+- o comportamento de fallback de locale passou a ser explícito e previsível
+- a documentação markdown foi alinhada em inglês com arquivos companheiros em pt-BR
 
-### Fixed
+### Corrigido
 
-- bug estrutural de fallback quando a locale atual não existia
-- acoplamento excessivo entre parsing, walking e lookup
-- comentário de pacote malformado em `doc.go` que podia quebrar a documentação do pacote
+- bug estrutural de fallback visto na linha antiga quando a locale atual não existia
+- acoplamento excessivo entre parsing, walking e responsabilidades de lookup
+- problemas de documentação de pacote em `doc.go`

@@ -2,48 +2,52 @@
 
 [English](./architecture.md) | [Português (Brasil)](./architecture.pt_br.md)
 
-## Architecture goal
+## Architectural goal
 
-v2 was designed to treat `go-resource` as a real library, not only as a file-reading helper. The target is simple:
+v2 treats `go-resource` as a real reusable library, not only as a file-reading helper.
+
+The design goals are direct:
 
 - separate responsibilities
 - reduce coupling
-- remove `panic` from the main path
-- prepare room for future extensions without deforming the API
+- remove `panic` from the main error path
+- leave room for future evolution without deforming the public API
 
-## Separation of responsibilities
+## Responsibility split
 
 ### `bundle.go`
 
-Public state, lookup, fallback, and runtime operations.
+Public runtime state, locale state, lookup behavior, fallback resolution, and convenience helpers.
 
 ### `loader.go`
 
-Loading layer, directory / `fs.FS` walking, file-name parsing, and data flattening.
+Filesystem walking, `fs.FS` support, resource file discovery, file-name parsing, and flattening of nested structures.
 
 ### `decoder.go`
 
-Decoder contract and built-in implementations for JSON, YAML, and TOML.
+Decoder contract and built-in implementations for JSON, YAML, TOML, and Java-style `.properties`.
 
 ### `options.go`
 
-Declarative library configuration.
+Declarative configuration for bundle behavior.
 
 ### `errors.go`
 
-Public errors and structured error types.
+Public error values and structured error types.
 
-## Decision: `LoadDir` and `LoadFS`
+## Why `LoadDir` and `LoadFS` both exist
 
-v1 was tied to the traditional filesystem. v2 accepts `fs.FS`, which opens space for:
+v1 was tied to the operating system filesystem. That was too narrow.
+
+v2 explicitly supports `fs.FS`, which opens room for:
 
 - `embed.FS`
-- simpler tests
-- better composition with modern Go libraries
+- cleaner tests
+- easier composition with modern Go libraries
 
-## Decision: flattening into dot notation
+## Why nested objects are flattened
 
-In real i18n projects, files grow. Flat maps quickly become hard to maintain. v2 converts nested objects into predictable flat keys.
+Real i18n catalogs grow. Deep structures are easier to organize than massive flat maps, but runtime lookup still benefits from predictable flat keys.
 
 Example:
 
@@ -63,41 +67,71 @@ becomes:
 checkout.button.confirm
 ```
 
-## Decision: hybrid namespacing
+## Why namespacing is hybrid
 
-v2 accepts namespaces from:
+v2 accepts namespace information from:
 
 - directory structure
-- extra segments in the file name
+- additional segments in the file name
 
-That supports two organization styles without forcing only one.
+That supports both common organization styles without forcing only one of them.
 
-## Decision: explicit failure policies
+Example:
 
-A mature library should not hide important choices. v2 makes two behaviors explicit:
+```text
+resources/errors/en.json
+```
+
+with:
+
+```json
+{
+  "validation": {
+    "required": "Required"
+  }
+}
+```
+
+becomes:
+
+```text
+errors.validation.required
+```
+
+## Why failure policies are explicit
+
+A reusable library should not silently choose critical behavior that users may want to control.
+
+v2 makes two policies explicit:
 
 - how to handle missing keys
 - how to handle duplicate keys
 
-## Decision: `Get` stays, but `Lookup` is the more correct API
+## Why `Get` still exists
 
-`Get` stays for ergonomics and mental continuity with v1. `Lookup` is the preferred API for serious scenarios because it returns `error` and makes the flow explicit.
+`Get` remains for ergonomics and continuity with v1.
 
-## Decision: thread-safe reads
+`Lookup` is the more correct API for non-trivial scenarios because it returns `error` and makes failure handling explicit.
 
-The structure uses `sync.RWMutex` to protect internal state, allowing concurrent reads safely.
+## Concurrency model
 
-## Additional runtime helpers
+The bundle uses `sync.RWMutex` to protect internal state. The intent is safe concurrent reads with controlled runtime mutation.
 
-`Has`, `HasFor`, and `Reset` were added as low-friction helpers for tests, diagnostics, and controlled reload flows.
+## Extra runtime helpers
 
-## Future evolutions already prepared
+The following helpers were added to reduce friction in tests, diagnostics, and controlled reload flows:
 
-The current architecture leaves room for:
+- `Has`
+- `HasFor`
+- `Reset`
+
+## Future evolution already prepared
+
+The current structure leaves room for future additions such as:
 
 - pluralization
 - named placeholders
-- more sophisticated fallback matching
+- more sophisticated locale matching
 - incremental loading
 - optional hot reload
 - missing-key metrics

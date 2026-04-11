@@ -4,47 +4,44 @@
 
 ## Resumo executivo
 
-A v2 muda o projeto de um pacote pequeno, útil para cenários simples, para uma base mais sólida para uso real em bibliotecas, frameworks e aplicações maiores. A principal mudança não é cosmética. Ela corrige o contrato da API.
+A v2 não é uma reescrita cosmética. Ela corrige o contrato da biblioteca e dá ao projeto uma base mais forte para evolução de longo prazo.
+
+A regra prática é simples:
+
+- fique na v1.0.1 quando compatibilidade for o objetivo principal
+- migre para a v2 quando precisar de uma API mais forte e espaço para crescer
 
 ## Problemas centrais da v1
 
 ### 1. `panic` como fluxo de erro
 
-Na v1, falhas de leitura de arquivo, problemas de parsing e formatos inválidos derrubam a aplicação. Isso é um contrato ruim para biblioteca. O consumidor precisa decidir o que fazer com o erro.
+Historicamente, a v1 expunha falhas de carregamento por `panic`. Esse não é um bom default para uma biblioteca reutilizável.
 
 ### 2. Bug de fallback
 
-Na v1, `Get()` tenta fazer fallback para a locale default quando a locale atual não resolve a mensagem. O problema é que `GetWithLocale()` devolve a própria chave quando a locale não existe, então o resultado não fica vazio e o fallback não acontece como esperado.
+Na linha antiga, `Get()` tentava fazer fallback para a locale default, mas a interação com `GetWithLocale()` podia impedir o fallback correto quando a locale atual não existia.
 
 ### 3. Responsabilidades acopladas
 
-O mesmo arquivo mistura:
+Walking de diretório, parsing, merge de mensagens, escolha de locale e formatação viviam próximos demais.
 
-- walking de diretórios
-- parsing de formatos
-- merge de mensagens
-- escolha de locale
-- formatação de string
+### 4. Ausência de `fs.FS`
 
-Isso dificulta evolução, teste e manutenção.
+A linha antiga era presa ao filesystem tradicional, o que limitava o uso com `embed.FS`.
 
-### 4. Sem `fs.FS`
+### 5. Ausência de política explícita para chave ausente e duplicada
 
-A v1 prende o consumo ao filesystem tradicional. Isso limita uso com `embed.FS`.
+Havia comportamento, mas ele não era uma decisão claramente configurável da API.
 
-### 5. Sem política formal para colisão e chave ausente
+### 6. Ausência de suporte de primeira classe para objetos aninhados
 
-Quando uma chave se repete, o comportamento não é uma decisão explícita da API. Quando uma chave não existe, o retorno também não é configurável.
+Catálogos maiores ficam mais difíceis de organizar quando tudo precisa se comportar como um `map[string]string` plano.
 
-### 6. Sem suporte a objetos aninhados
-
-A v1 trabalha na prática com `map[string]string`. Isso limita a organização de catálogos maiores.
-
-## Quebras de compatibilidade
+## Breaking changes
 
 ### 1. Path do módulo
 
-A v2 segue o padrão semântico de major version do Go:
+A v2 segue semantic import versioning do Go:
 
 ```go
 import resource "github.com/Lucas-Palomo/go-resource/v2"
@@ -67,18 +64,18 @@ bundle := resource.New(
 )
 
 if err := bundle.LoadDir("./resources"); err != nil {
-	panic(err)
+	return err
 }
 ```
 
-### 3. Carregamento
+### 3. API de carregamento
 
-A v2 separa o carregamento por fonte:
+A v2 separa o carregamento por origem:
 
 - `LoadDir(root string)`
 - `LoadFS(fsys fs.FS, root string)`
 
-### 4. Lookup
+### 4. API de lookup
 
 #### v1
 
@@ -97,7 +94,10 @@ value, err := bundle.Lookup("hello", "Lucas")
 value, err := bundle.LookupFor(language.English, "hello", "Lucas")
 ```
 
-`Lookup` é a API preferível quando você quer controle explícito de erro.
+Regra prática:
+
+- use `Get` / `GetFor` por conveniência
+- use `Lookup` / `LookupFor` quando tratamento explícito de erro for importante
 
 ### 5. Estruturas aninhadas
 
@@ -111,7 +111,7 @@ value, err := bundle.LookupFor(language.English, "hello", "Lucas")
 
 #### v2
 
-Além do formato plano, a v2 também aceita:
+A v2 continua aceitando arquivos planos, mas também aceita objetos aninhados:
 
 ```json
 {
@@ -124,12 +124,12 @@ Além do formato plano, a v2 também aceita:
 }
 ```
 
-Isso vira:
+que viram:
 
 - `checkout.title`
 - `checkout.button.confirm`
 
-### 6. Namespacing por pasta e nome de arquivo
+### 6. Namespace por diretório e nome de arquivo
 
 Exemplo:
 
@@ -137,7 +137,7 @@ Exemplo:
 resources/errors/en.json
 ```
 
-com conteúdo:
+com:
 
 ```json
 {
@@ -153,9 +153,13 @@ vira:
 errors.validation.required
 ```
 
-## Novas capacidades
+### 7. Suporte a `.properties`
 
-### Estratégia de chave ausente
+A v2 adiciona suporte nativo a arquivos `.properties` no estilo Java. Isso importa quando seus assets de tradução já usam esse formato.
+
+## Novas capacidades da v2
+
+### Estratégia para chave ausente
 
 ```go
 resource.WithMissingKeyStrategy(resource.ReturnKeyOnMissing)
@@ -163,7 +167,7 @@ resource.WithMissingKeyStrategy(resource.ReturnEmptyOnMissing)
 resource.WithMissingKeyStrategy(resource.ErrorOnMissing)
 ```
 
-### Estratégia de chave duplicada
+### Estratégia para chave duplicada
 
 ```go
 resource.WithDuplicateKeyStrategy(resource.OverwriteOnDuplicate)
@@ -184,23 +188,28 @@ bundle.HasFor(language.English, "checkout.title")
 bundle.Reset()
 ```
 
-## Estratégia recomendada para adoção
+## Estratégia recomendada de migração
 
 ### Migração conservadora
 
-- mantenha a estrutura atual de arquivos
+Use esse caminho quando você quer a menor mudança operacional possível.
+
 - troque o import para `/v2`
 - inicialize com `resource.New(...)`
-- troque `Load()` por `LoadDir()`
+- substitua `Load()` por `LoadDir()`
+- mantenha o layout atual de arquivos no início
 - continue usando `Get()` no primeiro momento
-- depois evolua para `Lookup()` onde precisar de controle fino
+- migre fluxos específicos para `Lookup()` quando controle explícito fizer diferença
 
 ### Migração estrutural
 
-- reorganize mensagens por namespace
-- converta arquivos planos para objetos aninhados
+Use esse caminho quando você quer extrair mais valor da v2.
+
+- reorganize recursos por namespace
+- converta arquivos planos em objetos aninhados quando isso melhorar a legibilidade
 - habilite `ErrorOnDuplicate`
-- habilite `ErrorOnMissing` em ambiente de teste
+- habilite `ErrorOnMissing` em testes ou pipelines de validação
+- adote `.properties` quando compatibilidade com Java for importante
 
 ## Exemplo completo
 
@@ -226,4 +235,6 @@ fmt.Println(msg)
 
 ## Recomendação final
 
-Use a v2 como base definitiva. A v1 pode continuar existindo por compatibilidade, mas não deve ser a linha principal de evolução.
+Mantenha a v1 para compatibilidade.
+
+Escolha a v2 como linha principal de evolução.
