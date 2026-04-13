@@ -2,70 +2,111 @@
 
 [English](./architecture.md) | [Português (Brasil)](./architecture.pt_br.md)
 
-## Architectural goal
+## Design goal
 
-v2 treats `go-resource` as a reusable library first.
+The architecture of v2 is deliberately modest: keep file-based i18n simple, but make the runtime behavior explicit enough for reuse in real applications.
 
-Design goals:
+The library is built around one central idea: load resource files into a normalized in-memory catalog, then resolve keys through a locale fallback chain.
 
-- separate responsibilities
-- reduce hidden behavior
-- remove `panic` from the normal error path
-- make fallback and lookup behavior explicit
-- preserve room for extension
+## Main runtime pieces
 
-## Responsibility split
+- `Bundle` owns catalogs, decoder registry, locale settings, and lookup strategies
+- decoders transform raw files into `map[string]any`
+- the loader normalizes decoded content into `map[string]string`
+- lookup walks locale fallbacks built from `golang.org/x/text/language`
 
-- `bundle.go`: runtime state, locale state, lookup behavior, synchronization
-- `loader.go`: filesystem walking, path parsing, flattening, duplicate handling
-- `decoder.go`: decoder contract plus JSON, YAML, and TOML decoders
-- `properties_decoder.go`: Java-style `.properties` parser
-- `options.go`: runtime policy configuration
-- `errors.go`: public sentinel errors and structured error types
+## Loading pipeline
 
-## Why `fs.FS` matters
+For each resource file, the loader performs these steps:
 
-The loading surface is built around `fs.FS`, which enables:
+1. select the decoder from the file extension
+2. parse the locale from the filename
+3. derive the namespace from directories and filename segments
+4. decode the file into a generic object graph
+5. flatten nested objects into dot-notated keys
+6. normalize scalar values into strings
+7. validate duplicate keys according to the configured strategy
+8. merge the pending catalogs into bundle memory
 
-- OS directories
-- `embed.FS`
-- in-memory test filesystems
-- wrapper filesystems from other libraries
+## Key model
 
-## Runtime normalization model
+A final lookup key may come from three layers:
 
-v2 always builds a flat `map[string]string` catalog per locale.
+- folders
+- filename namespace segments
+- nested objects in the file body
 
-Pipeline:
+Examples:
 
-1. discover the file
-2. parse locale and namespace from the path
-3. decode content into `map[string]any`
-4. flatten nested objects into dot-notated keys
-5. merge into the locale catalog
+```text
+resources/errors/en.json            -> errors.*
+resources/en.messages.checkout.toml -> messages.checkout.*
+```
 
-## Fallback model
+That model keeps keys predictable even when projects mix directory-based organization and document-based nesting.
 
-Resolution uses a locale chain based on `golang.org/x/text/language`:
+## Scalar normalization
 
-- requested locale
-- its parents
-- fallback locale
-- parents of the fallback locale
-- `language.Und` at the end
+The runtime catalog is always `map[string]string`.
 
-## Explicit policies
+This is intentional:
 
-v2 makes two policies first-class:
+- lookups remain deterministic
+- formatting with `fmt.Sprintf` is straightforward
+- callers do not need to reason about mixed scalar types at read time
 
-- how to handle missing keys
-- how to handle duplicate keys
+Numbers and booleans are stringified. `nil` values and unsupported composite leaf values are rejected.
+
+## Locale resolution
+
+Lookup follows a locale chain instead of a single exact match.
+
+In practice, resolution uses:
+
+1. the requested locale
+2. its parent locales
+3. the configured fallback locale
+4. the fallback parents
+5. `language.Und`
+
+This makes it possible to keep a precise locale for overrides while still falling back to broader catalogs.
 
 ## Concurrency model
 
-The bundle uses `sync.RWMutex`.
+`Bundle` uses a read-write mutex.
 
-Intent:
+- read paths such as `Lookup`, `Get`, `Has`, `Catalog`, and `Locales` use read locks
+- mutation paths such as `LoadFS`, `SetLocale`, `Reset`, and `RegisterDecoder` use write locks
 
-- safe concurrent reads
-- controlled mutation for locale changes, decoder registration, reset, and load operations
+The public API is safe for concurrent reads after loading.
+
+## Merge semantics
+
+`LoadDir` and `LoadFS` are incremental operations.
+
+A successful second load does not replace the current in-memory bundle. It merges additional catalogs into what is already loaded.
+
+That behavior is useful for layered sources, but it changes how reload flows should be designed:
+
+- call `Reset()` before loading again when you want full replacement
+- under `ErrorOnDuplicate`, duplicate validation against already-loaded catalogs completes before any mutation happens in the new load
+
+## Decoder extension points
+
+`RegisterDecoder` allows support for additional file formats.
+
+Contract details:
+
+- extensions are normalized to dotted lowercase form
+- empty extensions are ignored
+- nil decoders are ignored
+- unsupported extensions fail loading with `ErrUnsupportedFormat`
+
+## Lookup contract
+
+The API intentionally exposes two lookup styles:
+
+- `Lookup` and `LookupFor` are explicit and error-aware
+- `Get` and `GetFor` are lenient helpers that return the original key on lookup errors
+
+That split gives ergonomic access for UI text while preserving a strict path for services, validation, and tests.

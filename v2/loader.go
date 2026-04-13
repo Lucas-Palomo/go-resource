@@ -17,10 +17,15 @@ func (b *Bundle) LoadDir(root string) error {
 }
 
 // LoadFS loads all resources from any fs.FS, including embed.FS.
+//
+// Repeated successful calls merge into the existing in-memory catalogs.
+// Call Reset() first when replacement semantics are required.
 func (b *Bundle) LoadFS(fsys fs.FS, root string) error {
 	decoders := b.snapshotDecoders()
 	duplicateKeyStrategy := b.snapshotDuplicateKeyStrategy()
+
 	pending := make(map[language.Tag]Catalog)
+	origins := make(map[language.Tag]map[string]string)
 
 	err := fs.WalkDir(fsys, root, func(filePath string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -32,7 +37,7 @@ func (b *Bundle) LoadFS(fsys fs.FS, root string) error {
 
 		ext := strings.ToLower(path.Ext(entry.Name()))
 		decoder, ok := decoders[ext]
-		if !ok {
+		if !ok || decoder == nil {
 			return fmt.Errorf("%w: %s", ErrUnsupportedFormat, filePath)
 		}
 
@@ -59,13 +64,16 @@ func (b *Bundle) LoadFS(fsys fs.FS, root string) error {
 		if pending[locale] == nil {
 			pending[locale] = make(Catalog)
 		}
+		if origins[locale] == nil {
+			origins[locale] = make(map[string]string)
+		}
 
 		for key, value := range flat {
 			if _, exists := pending[locale][key]; exists && duplicateKeyStrategy == ErrorOnDuplicate {
 				return DuplicateKeyError{Locale: locale, Key: key, File: filePath}
 			}
-
 			pending[locale][key] = value
+			origins[locale][key] = filePath
 		}
 
 		return nil
@@ -77,19 +85,25 @@ func (b *Bundle) LoadFS(fsys fs.FS, root string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	if duplicateKeyStrategy == ErrorOnDuplicate {
+		for locale, catalog := range pending {
+			existing := b.catalogs[locale]
+			for key := range catalog {
+				if _, exists := existing[key]; exists {
+					file := root
+					if origin, ok := origins[locale][key]; ok {
+						file = origin
+					}
+					return DuplicateKeyError{Locale: locale, Key: key, File: file}
+				}
+			}
+		}
+	}
+
 	for locale, catalog := range pending {
 		if b.catalogs[locale] == nil {
 			b.catalogs[locale] = make(Catalog)
 		}
-
-		if duplicateKeyStrategy == ErrorOnDuplicate {
-			for key := range catalog {
-				if _, exists := b.catalogs[locale][key]; exists {
-					return DuplicateKeyError{Locale: locale, Key: key, File: root}
-				}
-			}
-		}
-
 		maps.Copy(b.catalogs[locale], catalog)
 	}
 
@@ -104,14 +118,12 @@ func (b *Bundle) LoadFS(fsys fs.FS, root string) error {
 func (b *Bundle) snapshotDecoders() map[string]Decoder {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-
 	return maps.Clone(b.decoders)
 }
 
 func (b *Bundle) snapshotDuplicateKeyStrategy() DuplicateKeyStrategy {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-
 	return b.duplicateKeyStrategy
 }
 
@@ -130,7 +142,6 @@ func parseResourcePath(root string, filePath string) (language.Tag, string, erro
 	ext := path.Ext(base)
 	name := strings.TrimSuffix(base, ext)
 	parts := strings.Split(name, ".")
-
 	if len(parts) == 0 || strings.TrimSpace(parts[0]) == "" {
 		return language.Und, "", ResourceFileNameError{
 			Path:   filePath,
@@ -190,7 +201,8 @@ func flattenValue(fullKey string, value any, out Catalog) error {
 		return nil
 	case int, int8, int16, int32, int64,
 		uint, uint8, uint16, uint32, uint64,
-		float32, float64, bool:
+		float32, float64,
+		bool:
 		out[fullKey] = fmt.Sprint(typed)
 		return nil
 	case nil:

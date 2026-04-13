@@ -1,26 +1,19 @@
 # Changelog
 
-[English](./CHANGELOG.md) | [Português (Brasil)](./CHANGELOG.pt_br.md)
-
-Este changelog acompanha o módulo v2 (`github.com/Lucas-Palomo/go-resource/v2`).
-
-## [v2.0.1] - 2026-04-12
+## [v2.0.1] - 2026-04-13
 
 ### Documentação
 
-- reescreveu o README da v2 para refletir o estado realmente publicado do módulo
-- esclareceu instalação, convenções de recurso suportadas e semântica de lookup
-- alinhou a referência da API, as notas de arquitetura e o guia de migração com o modelo real de runtime da v2
+- reescreveu o README da v2 com uma narrativa de release mais clara e um guia de uso mais amigável
+- esclareceu instalação, formatos de arquivo suportados, composição de namespace e comportamento de lookup
+- alinhou a referência da API, notas de arquitetura e guia de migração ao contrato real de runtime da v2
 - sincronizou a documentação em inglês e pt-BR
 
-### Gestão de release
+### Endurecimento de runtime
 
-- retractou `v2.0.0` porque sua documentação estava semanticamente incorreta
-- estabeleceu `v2.0.1` como ponto de entrada estável da v2
-
-### Runtime
-
-- nenhuma mudança intencional de API ou de comportamento em relação à `v2.0.0`
+- passou a ignorar registros inválidos de decoder customizado quando a extensão é vazia ou o decoder é nil
+- fez a validação de chave duplicada contra catálogos já carregados acontecer antes de qualquer mutação durante `LoadFS`
+- documentou a semântica de merge incremental em carregamentos repetidos
 
 ## [v2.0.0] - 2026-04-11
 
@@ -30,8 +23,8 @@ Este changelog acompanha o módulo v2 (`github.com/Lucas-Palomo/go-resource/v2`)
 - `LoadDir` e `LoadFS`
 - suporte a `fs.FS` e `embed.FS`
 - decoders nativos para JSON, YAML, TOML e `.properties` no estilo Java
-- flattening de objetos aninhados em notação por ponto
-- composição de namespace por pastas e segmentos do nome do arquivo
+- achatamento de objetos aninhados em notação por ponto
+- composição de namespace a partir de pastas e segmentos do nome do arquivo
 - `Lookup`, `LookupFor`, `Get` e `GetFor`
 - estratégias configuráveis para chave ausente e chave duplicada
 - helpers de runtime como `Has`, `HasFor`, `Locales`, `Catalog` e `Reset`

@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"errors"
 	"fmt"
 	"maps"
 	"sort"
@@ -25,10 +24,12 @@ type Bundle struct {
 
 	catalogs map[language.Tag]Catalog
 	decoders map[string]Decoder
-	loaded   bool
 
-	fallbackLocale       language.Tag
-	currentLocale        language.Tag
+	loaded bool
+
+	fallbackLocale language.Tag
+	currentLocale  language.Tag
+
 	missingKeyStrategy   MissingKeyStrategy
 	duplicateKeyStrategy DuplicateKeyStrategy
 }
@@ -43,10 +44,12 @@ func New(opts ...Option) *Bundle {
 	}
 
 	b := &Bundle{
-		catalogs:             make(map[language.Tag]Catalog),
-		decoders:             make(map[string]Decoder),
-		fallbackLocale:       cfg.fallbackLocale,
-		currentLocale:        cfg.currentLocale,
+		catalogs: make(map[language.Tag]Catalog),
+		decoders: make(map[string]Decoder),
+
+		fallbackLocale: cfg.fallbackLocale,
+		currentLocale:  cfg.currentLocale,
+
 		missingKeyStrategy:   cfg.missingKeyStrategy,
 		duplicateKeyStrategy: cfg.duplicateKeyStrategy,
 	}
@@ -65,18 +68,25 @@ func New(opts ...Option) *Bundle {
 }
 
 // RegisterDecoder registers a decoder for a file extension such as ".json" or "yaml".
+//
+// Invalid registrations are ignored:
+//   - empty extensions are ignored
+//   - nil decoders are ignored
 func (b *Bundle) RegisterDecoder(ext string, decoder Decoder) {
+	normalized := normalizeExt(ext)
+	if normalized == "" || decoder == nil {
+		return
+	}
+
 	b.mu.Lock()
 	defer b.mu.Unlock()
-
-	b.decoders[normalizeExt(ext)] = decoder
+	b.decoders[normalized] = decoder
 }
 
 // SetLocale changes the current lookup locale.
 func (b *Bundle) SetLocale(locale language.Tag) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-
 	b.currentLocale = locale
 }
 
@@ -84,7 +94,6 @@ func (b *Bundle) SetLocale(locale language.Tag) {
 func (b *Bundle) Locale() language.Tag {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-
 	return b.currentLocale
 }
 
@@ -92,7 +101,6 @@ func (b *Bundle) Locale() language.Tag {
 func (b *Bundle) FallbackLocale() language.Tag {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-
 	return b.fallbackLocale
 }
 
@@ -100,7 +108,6 @@ func (b *Bundle) FallbackLocale() language.Tag {
 func (b *Bundle) Loaded() bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-
 	return b.loaded
 }
 
@@ -147,7 +154,6 @@ func (b *Bundle) Reset() {
 func (b *Bundle) Lookup(key string, args ...any) (string, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-
 	return b.lookupLocked(b.currentLocale, key, args...)
 }
 
@@ -155,7 +161,6 @@ func (b *Bundle) Lookup(key string, args ...any) (string, error) {
 func (b *Bundle) LookupFor(locale language.Tag, key string, args ...any) (string, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-
 	return b.lookupLocked(locale, key, args...)
 }
 
@@ -185,29 +190,26 @@ func (b *Bundle) HasFor(locale language.Tag, key string) bool {
 	return ok
 }
 
-// Get is a convenience wrapper around Lookup. It preserves the old ergonomic style while avoiding panics.
+// Get is a convenience wrapper around Lookup.
+//
+// It preserves the ergonomic v1-style API. Any lookup error returns the key itself,
+// including missing keys and "bundle not loaded" situations.
 func (b *Bundle) Get(key string, args ...any) string {
 	value, err := b.Lookup(key, args...)
 	if err != nil {
-		if errors.Is(err, ErrMissingKey) {
-			return key
-		}
 		return key
 	}
-
 	return value
 }
 
 // GetFor is a convenience wrapper around LookupFor.
+//
+// It mirrors Get and returns the original key on lookup errors.
 func (b *Bundle) GetFor(locale language.Tag, key string, args ...any) string {
 	value, err := b.LookupFor(locale, key, args...)
 	if err != nil {
-		if errors.Is(err, ErrMissingKey) {
-			return key
-		}
 		return key
 	}
-
 	return value
 }
 
@@ -263,7 +265,6 @@ func localeChain(locale language.Tag, fallback language.Tag) []language.Tag {
 			if _, ok := seen[id]; ok {
 				break
 			}
-
 			seen[id] = struct{}{}
 			chain = append(chain, current)
 		}
@@ -287,6 +288,5 @@ func joinKey(parts ...string) string {
 			filtered = append(filtered, part)
 		}
 	}
-
 	return strings.Join(filtered, ".")
 }

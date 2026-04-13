@@ -1,26 +1,19 @@
 # Changelog
 
-[English](./CHANGELOG.md) | [Português (Brasil)](./CHANGELOG.pt_br.md)
-
-This changelog tracks the v2 module (`github.com/Lucas-Palomo/go-resource/v2`).
-
-## [v2.0.1] - 2026-04-12
+## [v2.0.1] - 2026-04-13
 
 ### Documentation
 
-- rewrote the v2 README to match the actual published state of the module
-- clarified installation, supported resource conventions, and lookup semantics
-- aligned the API reference, architecture notes, and migration guide with the real v2 runtime model
+- rewrote the v2 README with a clearer release narrative and a more approachable usage guide
+- clarified installation, supported file formats, namespace composition, and lookup behavior
+- aligned the API reference, architecture notes, and migration guide with the actual v2 runtime contract
 - synchronized English and pt-BR documentation
 
-### Release management
+### Runtime hardening
 
-- retracted `v2.0.0` because its documentation was semantically incorrect
-- established `v2.0.1` as the stable v2 entry point
-
-### Runtime
-
-- no intended API or behavioral change relative to `v2.0.0`
+- ignored invalid custom decoder registrations when the extension is empty or the decoder is nil
+- made duplicate-key validation against previously loaded catalogs happen before any mutation during `LoadFS`
+- documented the incremental merge semantics of repeated load operations
 
 ## [v2.0.0] - 2026-04-11
 

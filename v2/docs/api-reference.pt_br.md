@@ -8,7 +8,7 @@
 import resource "github.com/Lucas-Palomo/go-resource/v2"
 ```
 
-## Tipos públicos principais
+## Principais tipos públicos
 
 - `Bundle`
 - `Catalog`
@@ -21,10 +21,12 @@ import resource "github.com/Lucas-Palomo/go-resource/v2"
 
 ### `func New(opts ...Option) *Bundle`
 
-Defaults:
+Cria um novo bundle com os decoders nativos e as estratégias padrão de runtime.
 
-- locale de fallback: `language.English`
-- locale atual: locale de fallback quando não for definida explicitamente
+Padrões:
+
+- fallback locale: `language.English`
+- locale atual: fallback locale quando não definido explicitamente
 - estratégia para chave ausente: `ReturnKeyOnMissing`
 - estratégia para chave duplicada: `ErrorOnDuplicate`
 
@@ -45,30 +47,35 @@ Decoders nativos:
 
 ## Estratégias
 
-### Chave ausente
+### Estratégias para chave ausente
 
 - `ReturnKeyOnMissing`: retorna a chave original
 - `ReturnEmptyOnMissing`: retorna `""`
-- `ErrorOnMissing`: retorna `ErrMissingKey` por meio de `Lookup` e `LookupFor`
+- `ErrorOnMissing`: retorna `ErrMissingKey` via `Lookup` e `LookupFor`
 
-### Chave duplicada
+### Estratégias para chave duplicada
 
-- `OverwriteOnDuplicate`: mantém o último valor carregado
+- `OverwriteOnDuplicate`: mantém o valor carregado por último
 - `ErrorOnDuplicate`: aborta o carregamento com `ErrDuplicateKey`
 
-## Carregamento
+## API de carregamento
 
 - `LoadDir(root string) error`
 - `LoadFS(fsys fs.FS, root string) error`
 - `RegisterDecoder(ext string, decoder Decoder)`
 
-Regras de carregamento:
+### Regras de carregamento
 
-- o primeiro segmento do nome do arquivo é a locale
+- o primeiro segmento do nome do arquivo é o locale
 - nomes de diretório viram segmentos de namespace
-- segmentos restantes do nome do arquivo viram segmentos de namespace
+- os demais segmentos do nome do arquivo viram segmentos de namespace
 - objetos aninhados são achatados em notação por ponto
-- o catálogo em runtime é sempre `map[string]string`
+- o catálogo de runtime é sempre `map[string]string`
+- carregamentos repetidos bem-sucedidos fazem merge nos catálogos já em memória
+- use `Reset()` quando quiser substituição em vez de merge
+- arquivos com extensão não suportada abortam o carregamento com `ErrUnsupportedFormat`
+- `RegisterDecoder` normaliza extensões como `json` para `.json`
+- `RegisterDecoder` ignora extensões vazias e decoders nil
 
 Exemplos:
 
@@ -77,7 +84,7 @@ resources/errors/en.json            -> prefixo de namespace: errors
 resources/en.messages.checkout.toml -> prefixo de namespace: messages.checkout
 ```
 
-## Lookup
+## API de lookup
 
 - `Lookup(key string, args ...any) (string, error)`
 - `LookupFor(locale language.Tag, key string, args ...any) (string, error)`
@@ -86,12 +93,13 @@ resources/en.messages.checkout.toml -> prefixo de namespace: messages.checkout
 - `Has(key string) bool`
 - `HasFor(locale language.Tag, key string) bool`
 
-Notas de comportamento:
+### Notas de comportamento
 
-- `Lookup` e `LookupFor` são as APIs explícitas
-- `Get` e `GetFor` são wrappers de conveniência
+- `Lookup` e `LookupFor` são as APIs estritas
+- `Get` e `GetFor` são helpers lenientes
+- `Get` e `GetFor` retornam a chave original em erros de lookup, inclusive em chave ausente e `ErrBundleNotLoaded`
 - quando argumentos de formatação são fornecidos, os valores são formatados com `fmt.Sprintf`
-- a resolução usa a locale solicitada, seus pais, a locale de fallback, os pais do fallback e por fim `language.Und`
+- as buscas percorrem o locale solicitado, seus pais, o locale de fallback, os pais do fallback e por fim `language.Und`
 
 ## Helpers de runtime
 
@@ -103,7 +111,16 @@ Notas de comportamento:
 - `Catalog(locale language.Tag) Catalog`
 - `Reset()`
 
+### Semântica dos helpers
+
+- `SetLocale` altera o locale padrão do bundle usado por `Lookup` e `Get`
+- `Catalog` retorna uma cópia do catálogo do locale, não o mapa interno
+- `Locales` retorna os locales atualmente carregados em memória
+- `Reset` limpa os catálogos carregados e marca o bundle como não carregado
+
 ## Valores de erro
+
+Erros sentinela:
 
 - `ErrBundleNotLoaded`
 - `ErrUnsupportedFormat`
