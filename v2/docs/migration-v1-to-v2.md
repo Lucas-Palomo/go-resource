@@ -4,8 +4,9 @@
 
 ## Executive summary
 
-Stay on `v1.0.1` when compatibility is the primary goal.
-Move to `v2.0.0` when you want a stronger contract and a more capable resource model.
+Stay on `v1.0.1` when compatibility is the primary goal. Move to `v2.0.1` when you want a stronger contract and a more capable resource model.
+
+If you already adopted `v2.0.0`, move to `v2.0.1` as the corrected stable documentation release. The migration target and runtime model remain the same.
 
 ## Conceptual changes
 

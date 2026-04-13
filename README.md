@@ -4,13 +4,14 @@
 
 File-based internationalization for Go, inspired by Java `ResourceBundle`, but adapted to idiomatic Go usage.
 
-This repository contains **two module lines** and **three published tags**:
+This repository contains **two module lines** and **four published tags**:
 
-| Tag | Line | Module path | Date | Status |
-|---|---|---|---|---|
+| Tag | Line | Module path | Date       | Status |
+|---|---|---|------------|---|
 | `v1.0.0` | v1 | `github.com/Lucas-Palomo/go-resource` | 2024-08-20 | Historical release, retracted |
 | `v1.0.1` | v1 | `github.com/Lucas-Palomo/go-resource` | 2026-04-11 | Stable maintenance release |
-| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | First stable v2 release |
+| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | Retracted due to incorrect documentation semantics |
+| `v2.0.1` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-13 | Current stable v2 release |
 
 ## What this project does
 
@@ -45,11 +46,11 @@ Supported source formats across the repository:
 
 ```text
 .
-├── go.mod                    # v1 module: github.com/Lucas-Palomo/go-resource
-├── pkg/resource              # v1 package
-├── docs                      # v1-focused documentation
-├── examples                  # v1 sample resources
-└── v2                        # v2 module: github.com/Lucas-Palomo/go-resource/v2
+├── go.mod                         # v1 module: github.com/Lucas-Palomo/go-resource
+├── pkg/resource                   # v1 package
+├── docs                           # v1-focused documentation
+├── examples                       # v1 sample resources
+└── v2                             # v2 module: github.com/Lucas-Palomo/go-resource/v2
 ```
 
 ## Install
@@ -67,7 +68,7 @@ import "github.com/Lucas-Palomo/go-resource/pkg/resource"
 ### v2
 
 ```bash
-go get github.com/Lucas-Palomo/go-resource/v2@v2.0.0
+go get github.com/Lucas-Palomo/go-resource/v2@v2.0.1
 ```
 
 ```go
@@ -140,24 +141,24 @@ errors.validation.required
 package main
 
 import (
-	"fmt"
-	"log"
+    "fmt"
+    "log"
 
-	"github.com/Lucas-Palomo/go-resource/pkg/resource"
-	"golang.org/x/text/language"
+    "github.com/Lucas-Palomo/go-resource/pkg/resource"
+    "golang.org/x/text/language"
 )
 
 func main() {
-	bundle := resource.NewBundle("./resources", language.English)
+    bundle := resource.NewBundle("./resources", language.English)
 
-	if err := bundle.LoadWithError(); err != nil {
-		log.Fatal(err)
-	}
+    if err := bundle.LoadWithError(); err != nil {
+        log.Fatal(err)
+    }
 
-	bundle.SetLocale(language.BrazilianPortuguese)
+    bundle.SetLocale(language.BrazilianPortuguese)
 
-	fmt.Println(bundle.Get("title"))
-	fmt.Println(bundle.Get("hello", "Lucas"))
+    fmt.Println(bundle.Get("title"))
+    fmt.Println(bundle.Get("hello", "Lucas"))
 }
 ```
 
@@ -167,26 +168,26 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"log"
+    "fmt"
+    "log"
 
-	resource "github.com/Lucas-Palomo/go-resource/v2"
-	"golang.org/x/text/language"
+    resource "github.com/Lucas-Palomo/go-resource/v2"
+    "golang.org/x/text/language"
 )
 
 func main() {
-	bundle := resource.New(
-		resource.WithFallbackLocale(language.English),
-		resource.WithLocale(language.BrazilianPortuguese),
-	)
+    bundle := resource.New(
+        resource.WithFallbackLocale(language.English),
+        resource.WithLocale(language.BrazilianPortuguese),
+    )
 
-	if err := bundle.LoadDir("./resources"); err != nil {
-		log.Fatal(err)
-	}
+    if err := bundle.LoadDir("./resources"); err != nil {
+        log.Fatal(err)
+    }
 
-	fmt.Println(bundle.Get("title"))
-	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
-	fmt.Println(bundle.Get("errors.validation.required"))
+    fmt.Println(bundle.Get("title"))
+    fmt.Println(bundle.Get("checkout.hello", "Lucas"))
+    fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
 

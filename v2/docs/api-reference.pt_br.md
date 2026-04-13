@@ -43,6 +43,19 @@ Decoders nativos:
 - `WithMissingKeyStrategy(strategy MissingKeyStrategy)`
 - `WithDuplicateKeyStrategy(strategy DuplicateKeyStrategy)`
 
+## Estratégias
+
+### Chave ausente
+
+- `ReturnKeyOnMissing`: retorna a chave original
+- `ReturnEmptyOnMissing`: retorna `""`
+- `ErrorOnMissing`: retorna `ErrMissingKey` por meio de `Lookup` e `LookupFor`
+
+### Chave duplicada
+
+- `OverwriteOnDuplicate`: mantém o último valor carregado
+- `ErrorOnDuplicate`: aborta o carregamento com `ErrDuplicateKey`
+
 ## Carregamento
 
 - `LoadDir(root string) error`
@@ -55,6 +68,14 @@ Regras de carregamento:
 - nomes de diretório viram segmentos de namespace
 - segmentos restantes do nome do arquivo viram segmentos de namespace
 - objetos aninhados são achatados em notação por ponto
+- o catálogo em runtime é sempre `map[string]string`
+
+Exemplos:
+
+```text
+resources/errors/en.json            -> prefixo de namespace: errors
+resources/en.messages.checkout.toml -> prefixo de namespace: messages.checkout
+```
 
 ## Lookup
 
@@ -64,6 +85,13 @@ Regras de carregamento:
 - `GetFor(locale language.Tag, key string, args ...any) string`
 - `Has(key string) bool`
 - `HasFor(locale language.Tag, key string) bool`
+
+Notas de comportamento:
+
+- `Lookup` e `LookupFor` são as APIs explícitas
+- `Get` e `GetFor` são wrappers de conveniência
+- quando argumentos de formatação são fornecidos, os valores são formatados com `fmt.Sprintf`
+- a resolução usa a locale solicitada, seus pais, a locale de fallback, os pais do fallback e por fim `language.Und`
 
 ## Helpers de runtime
 

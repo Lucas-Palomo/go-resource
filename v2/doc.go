@@ -1,7 +1,8 @@
 // Package resource provides a ResourceBundle-inspired internationalization layer for Go.
 //
-// The package loads JSON, YAML, TOML, and Java-style .properties resource files from a directory or any fs.FS,
-// merges them into locale catalogs, resolves locale fallbacks, and formats dynamic labels.
+// The package loads JSON, YAML, TOML, and Java-style .properties resource files from a
+// directory or any fs.FS, merges them into locale catalogs, resolves locale fallbacks,
+// and formats dynamic labels.
 //
 // Supported resource layouts:
 //

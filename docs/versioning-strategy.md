@@ -10,7 +10,8 @@ This repository follows a **multi-major layout**: the original v1 remains at the
 |---|---|---|---|---|
 | `v1.0.0` | v1 | `github.com/Lucas-Palomo/go-resource` | 2024-08-20 | First public release, now retracted |
 | `v1.0.1` | v1 | `github.com/Lucas-Palomo/go-resource` | 2026-04-11 | Stable maintenance release for existing users |
-| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | First stable release of the new API |
+| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | First stable v2 tag, later retracted because its documentation was semantically incorrect |
+| `v2.0.1` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-12 | Stable documentation-correction release for v2 |
 
 ## Module paths
 
@@ -39,14 +40,14 @@ That means:
 ### `/v2`
 
 - purpose: active major line
-- recommended version for new projects: `v2.0.0`
+- recommended version for new projects: `v2.0.1`
 - expected change profile: forward-looking feature evolution under the v2 module path
 
 ## Why `v1.0.0` was retracted
 
 The first public v1 release exposed normal loading failures through `panic`.
 
-`v1.0.1` corrects that contract without forcing a breaking rewrite:
+`v1.0.1` corrected that contract without forcing a breaking rewrite:
 
 - `Load()` no longer panics by default
 - `LoadWithError()` returns explicit errors
@@ -54,6 +55,12 @@ The first public v1 release exposed normal loading failures through `panic`.
 - fallback behavior in `Get()` was corrected
 
 The root `go.mod` retracts `v1.0.0` so Go tooling signals that it is not the recommended version.
+
+## Why `v2.0.0` was retracted
+
+`v2.0.0` was functionally valid, but its published documentation described the module state and usage semantics incorrectly enough to justify a correction release.
+
+`v2.0.1` exists to become the stable v2 entry point with corrected documentation and release metadata.
 
 ## Practical rules
 

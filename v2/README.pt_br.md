@@ -4,18 +4,19 @@
 
 `go-resource/v2` é a linha major estável para desenvolvimento novo.
 
-Ela preserva a ideia inspirada em ResourceBundle, mas melhora o contrato nos pontos que realmente importam para uma biblioteca Go reutilizável: tratamento de erro, modelo de recursos, pontos de extensão e abstração de filesystem.
+Ela preserva a ideia inspirada em `ResourceBundle`, mas melhora o contrato nos pontos que realmente importam para uma biblioteca Go reutilizável: tratamento de erro, modelo de recursos, pontos de extensão e abstração de filesystem.
 
 ## Status de release
 
-- versão estável atual: `v2.0.0`
+- versão estável atual: `v2.0.1`
+- tag estável anterior: `v2.0.0`, agora retraída porque a documentação publicada estava semanticamente incorreta
 - path do módulo: `github.com/Lucas-Palomo/go-resource/v2`
 - público recomendado: projetos novos e migrações estruturadas a partir da v1
 
 ## Instalação
 
 ```bash
-go get github.com/Lucas-Palomo/go-resource/v2@v2.0.0
+go get github.com/Lucas-Palomo/go-resource/v2@v2.0.1
 ```
 
 ```go
@@ -71,6 +72,20 @@ resources/
 
 Vira `checkout.button.confirm`.
 
+Quando o arquivo já está escopado por namespace de pasta ou de nome de arquivo, os prefixos são combinados. Exemplo: `resources/errors/en.json` com o JSON acima produz `errors.checkout.button.confirm`.
+
+### Normalização de escalares
+
+A v2 normaliza o catálogo decodificado em `map[string]string`.
+
+Isso significa:
+
+- strings permanecem strings
+- números são convertidos com `fmt.Sprint`
+- booleanos são convertidos com `fmt.Sprint`
+- valores `nil` são rejeitados
+- valores folha compostos não suportados retornam `ErrInvalidResourceValue`
+
 ## `.properties` no estilo Java
 
 Comportamentos suportados:
@@ -80,34 +95,51 @@ Comportamentos suportados:
 - continuação de linha com barra invertida no final
 - escapes como `\t`, `\n`, `\r`, `\f` e `\uXXXX`
 
+Exemplo:
+
+```properties
+title = Checkout
+checkout.hello = Hello, %s
+errors.validation.required: Required field
+```
+
 ## Quick start
 
 ```go
 package main
 
 import (
-	"fmt"
-	"log"
+    "fmt"
+    "log"
 
-	resource "github.com/Lucas-Palomo/go-resource/v2"
-	"golang.org/x/text/language"
+    resource "github.com/Lucas-Palomo/go-resource/v2"
+    "golang.org/x/text/language"
 )
 
 func main() {
-	bundle := resource.New(
-		resource.WithFallbackLocale(language.English),
-		resource.WithLocale(language.BrazilianPortuguese),
-	)
+    bundle := resource.New(
+        resource.WithFallbackLocale(language.English),
+        resource.WithLocale(language.BrazilianPortuguese),
+    )
 
-	if err := bundle.LoadDir("./resources"); err != nil {
-		log.Fatal(err)
-	}
+    if err := bundle.LoadDir("./resources"); err != nil {
+        log.Fatal(err)
+    }
 
-	fmt.Println(bundle.Get("title"))
-	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
-	fmt.Println(bundle.Get("errors.validation.required"))
+    fmt.Println(bundle.Get("title"))
+    fmt.Println(bundle.Get("checkout.hello", "Lucas"))
+    fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
+
+## Comportamento padrão
+
+`resource.New()` inicia com estes defaults:
+
+- locale de fallback: `language.English`
+- locale atual: locale de fallback quando não for definida explicitamente
+- estratégia para chave ausente: `ReturnKeyOnMissing`
+- estratégia para chave duplicada: `ErrorOnDuplicate`
 
 ## Documentação
 

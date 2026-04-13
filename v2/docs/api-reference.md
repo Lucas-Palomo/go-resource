@@ -43,6 +43,19 @@ Built-in decoders:
 - `WithMissingKeyStrategy(strategy MissingKeyStrategy)`
 - `WithDuplicateKeyStrategy(strategy DuplicateKeyStrategy)`
 
+## Strategies
+
+### Missing key
+
+- `ReturnKeyOnMissing`: returns the original key
+- `ReturnEmptyOnMissing`: returns `""`
+- `ErrorOnMissing`: returns `ErrMissingKey` through `Lookup` and `LookupFor`
+
+### Duplicate key
+
+- `OverwriteOnDuplicate`: keeps the last loaded value
+- `ErrorOnDuplicate`: aborts loading with `ErrDuplicateKey`
+
 ## Loading
 
 - `LoadDir(root string) error`
@@ -55,6 +68,14 @@ Loading rules:
 - directory names become namespace segments
 - remaining filename segments become namespace segments
 - nested objects are flattened into dot notation
+- the runtime catalog is always `map[string]string`
+
+Examples:
+
+```text
+resources/errors/en.json           -> namespace prefix: errors
+resources/en.messages.checkout.toml -> namespace prefix: messages.checkout
+```
 
 ## Lookup
 
@@ -64,6 +85,13 @@ Loading rules:
 - `GetFor(locale language.Tag, key string, args ...any) string`
 - `Has(key string) bool`
 - `HasFor(locale language.Tag, key string) bool`
+
+Behavior notes:
+
+- `Lookup` and `LookupFor` are the explicit APIs
+- `Get` and `GetFor` are convenience wrappers
+- when formatting arguments are provided, values are formatted with `fmt.Sprintf`
+- lookups use the requested locale, its parents, the fallback locale, the fallback parents, and finally `language.Und`
 
 ## Runtime helpers
 

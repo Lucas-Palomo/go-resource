@@ -17,7 +17,7 @@ Objetivos de design:
 ## Separação de responsabilidades
 
 - `bundle.go`: estado de runtime, estado de locale, comportamento de lookup, sincronização
-- `loader.go`: walking de filesystem, parsing de path, flatten, tratamento de duplicidade
+- `loader.go`: walking de filesystem, parsing de path, flattening e tratamento de duplicidade
 - `decoder.go`: contrato de decoder e decoders JSON, YAML e TOML
 - `properties_decoder.go`: parser de `.properties` no estilo Java
 - `options.go`: configuração de políticas em runtime

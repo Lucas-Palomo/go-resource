@@ -4,8 +4,9 @@
 
 ## Resumo executivo
 
-Fique na `v1.0.1` quando compatibilidade for o objetivo principal.
-Migre para a `v2.0.0` quando quiser um contrato mais forte e um modelo de recursos mais capaz.
+Fique na `v1.0.1` quando compatibilidade for o objetivo principal. Migre para a `v2.0.1` quando quiser um contrato mais forte e um modelo de recursos mais capaz.
+
+Se você já adotou a `v2.0.0`, mova para a `v2.0.1` como release estável com documentação corrigida. O alvo de migração e o modelo de runtime continuam os mesmos.
 
 ## Mudanças conceituais
 

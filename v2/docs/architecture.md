@@ -38,8 +38,8 @@ v2 always builds a flat `map[string]string` catalog per locale.
 
 Pipeline:
 
-1. discover file
-2. parse locale and namespace from path
+1. discover the file
+2. parse locale and namespace from the path
 3. decode content into `map[string]any`
 4. flatten nested objects into dot-notated keys
 5. merge into the locale catalog

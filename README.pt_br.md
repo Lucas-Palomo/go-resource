@@ -2,15 +2,16 @@
 
 [English](./README.md) | [Português (Brasil)](./README.pt_br.md)
 
-Internacionalização baseada em arquivos para Go, inspirada no `ResourceBundle` do Java, mas adaptada para um uso idiomático em Go.
+Internacionalização baseada em arquivos para Go, inspirada no `ResourceBundle` do Java, mas adaptada para uso idiomático em Go.
 
-Este repositório contém **duas linhas de módulo** e **três tags publicadas**:
+Este repositório contém **duas linhas de módulo** e **quatro tags publicadas**:
 
-| Tag | Linha | Path do módulo | Data | Status |
-|---|---|---|---|---|
+| Tag | Linha | Path do módulo | Data       | Status |
+|---|---|---|------------|---|
 | `v1.0.0` | v1 | `github.com/Lucas-Palomo/go-resource` | 2024-08-20 | Release histórica, retraída |
 | `v1.0.1` | v1 | `github.com/Lucas-Palomo/go-resource` | 2026-04-11 | Release estável de manutenção |
-| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | Primeira release estável da v2 |
+| `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | Retraída por documentação semanticamente incorreta |
+| `v2.0.1` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-13 | Release estável atual da v2 |
 
 ## O que este projeto faz
 
@@ -45,11 +46,11 @@ Formatos suportados ao longo do repositório:
 
 ```text
 .
-├── go.mod                    # módulo v1: github.com/Lucas-Palomo/go-resource
-├── pkg/resource              # pacote v1
-├── docs                      # documentação focada na v1
-├── examples                  # recursos de exemplo da v1
-└── v2                        # módulo v2: github.com/Lucas-Palomo/go-resource/v2
+├── go.mod                         # módulo v1: github.com/Lucas-Palomo/go-resource
+├── pkg/resource                   # pacote v1
+├── docs                           # documentação focada na v1
+├── examples                       # recursos de exemplo da v1
+└── v2                             # módulo v2: github.com/Lucas-Palomo/go-resource/v2
 ```
 
 ## Instalação
@@ -67,7 +68,7 @@ import "github.com/Lucas-Palomo/go-resource/pkg/resource"
 ### v2
 
 ```bash
-go get github.com/Lucas-Palomo/go-resource/v2@v2.0.0
+go get github.com/Lucas-Palomo/go-resource/v2@v2.0.1
 ```
 
 ```go
@@ -140,24 +141,24 @@ errors.validation.required
 package main
 
 import (
-	"fmt"
-	"log"
+    "fmt"
+    "log"
 
-	"github.com/Lucas-Palomo/go-resource/pkg/resource"
-	"golang.org/x/text/language"
+    "github.com/Lucas-Palomo/go-resource/pkg/resource"
+    "golang.org/x/text/language"
 )
 
 func main() {
-	bundle := resource.NewBundle("./resources", language.English)
+    bundle := resource.NewBundle("./resources", language.English)
 
-	if err := bundle.LoadWithError(); err != nil {
-		log.Fatal(err)
-	}
+    if err := bundle.LoadWithError(); err != nil {
+        log.Fatal(err)
+    }
 
-	bundle.SetLocale(language.BrazilianPortuguese)
+    bundle.SetLocale(language.BrazilianPortuguese)
 
-	fmt.Println(bundle.Get("title"))
-	fmt.Println(bundle.Get("hello", "Lucas"))
+    fmt.Println(bundle.Get("title"))
+    fmt.Println(bundle.Get("hello", "Lucas"))
 }
 ```
 
@@ -167,26 +168,26 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"log"
+    "fmt"
+    "log"
 
-	resource "github.com/Lucas-Palomo/go-resource/v2"
-	"golang.org/x/text/language"
+    resource "github.com/Lucas-Palomo/go-resource/v2"
+    "golang.org/x/text/language"
 )
 
 func main() {
-	bundle := resource.New(
-		resource.WithFallbackLocale(language.English),
-		resource.WithLocale(language.BrazilianPortuguese),
-	)
+    bundle := resource.New(
+        resource.WithFallbackLocale(language.English),
+        resource.WithLocale(language.BrazilianPortuguese),
+    )
 
-	if err := bundle.LoadDir("./resources"); err != nil {
-		log.Fatal(err)
-	}
+    if err := bundle.LoadDir("./resources"); err != nil {
+        log.Fatal(err)
+    }
 
-	fmt.Println(bundle.Get("title"))
-	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
-	fmt.Println(bundle.Get("errors.validation.required"))
+    fmt.Println(bundle.Get("title"))
+    fmt.Println(bundle.Get("checkout.hello", "Lucas"))
+    fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
 

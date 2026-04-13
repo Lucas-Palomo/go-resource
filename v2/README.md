@@ -8,14 +8,15 @@ It keeps the ResourceBundle-inspired idea, but upgrades the contract in the area
 
 ## Release status
 
-- current stable version: `v2.0.0`
+- current stable version: `v2.0.1`
+- previous stable tag: `v2.0.0`, now retracted because its published documentation was semantically incorrect
 - module path: `github.com/Lucas-Palomo/go-resource/v2`
 - recommended audience: new projects and structured migrations from v1
 
 ## Installation
 
 ```bash
-go get github.com/Lucas-Palomo/go-resource/v2@v2.0.0
+go get github.com/Lucas-Palomo/go-resource/v2@v2.0.1
 ```
 
 ```go
@@ -71,6 +72,20 @@ resources/
 
 Becomes `checkout.button.confirm`.
 
+When the file is already scoped by folder or filename namespace, the prefixes are combined. For example, `resources/errors/en.json` with the JSON above produces `errors.checkout.button.confirm`.
+
+### Scalar normalization
+
+v2 normalizes the decoded resource catalog into `map[string]string`.
+
+That means:
+
+- strings remain strings
+- numbers are converted with `fmt.Sprint`
+- booleans are converted with `fmt.Sprint`
+- `nil` values are rejected
+- unsupported composite leaf values return `ErrInvalidResourceValue`
+
 ## Java-style `.properties`
 
 Supported behaviors:
@@ -80,34 +95,51 @@ Supported behaviors:
 - line continuation with trailing backslash
 - escape sequences such as `\t`, `\n`, `\r`, `\f`, and `\uXXXX`
 
+Example:
+
+```properties
+title = Checkout
+checkout.hello = Hello, %s
+errors.validation.required: Required field
+```
+
 ## Quick start
 
 ```go
 package main
 
 import (
-	"fmt"
-	"log"
+    "fmt"
+    "log"
 
-	resource "github.com/Lucas-Palomo/go-resource/v2"
-	"golang.org/x/text/language"
+    resource "github.com/Lucas-Palomo/go-resource/v2"
+    "golang.org/x/text/language"
 )
 
 func main() {
-	bundle := resource.New(
-		resource.WithFallbackLocale(language.English),
-		resource.WithLocale(language.BrazilianPortuguese),
-	)
+    bundle := resource.New(
+        resource.WithFallbackLocale(language.English),
+        resource.WithLocale(language.BrazilianPortuguese),
+    )
 
-	if err := bundle.LoadDir("./resources"); err != nil {
-		log.Fatal(err)
-	}
+    if err := bundle.LoadDir("./resources"); err != nil {
+        log.Fatal(err)
+    }
 
-	fmt.Println(bundle.Get("title"))
-	fmt.Println(bundle.Get("checkout.hello", "Lucas"))
-	fmt.Println(bundle.Get("errors.validation.required"))
+    fmt.Println(bundle.Get("title"))
+    fmt.Println(bundle.Get("checkout.hello", "Lucas"))
+    fmt.Println(bundle.Get("errors.validation.required"))
 }
 ```
+
+## Default behavior
+
+`resource.New()` starts with these defaults:
+
+- fallback locale: `language.English`
+- current locale: fallback locale when not explicitly set
+- missing-key strategy: `ReturnKeyOnMissing`
+- duplicate-key strategy: `ErrorOnDuplicate`
 
 ## Documentation
 
