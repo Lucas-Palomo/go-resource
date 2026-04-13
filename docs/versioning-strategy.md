@@ -6,12 +6,12 @@ This repository follows a **multi-major layout**: the original v1 remains at the
 
 ## Published tags
 
-| Tag | Module | Import path | Date | Meaning |
-|---|---|---|---|---|
+| Tag | Module | Import path | Date       | Meaning |
+|---|---|---|------------|---|
 | `v1.0.0` | v1 | `github.com/Lucas-Palomo/go-resource` | 2024-08-20 | First public release, now retracted |
 | `v1.0.1` | v1 | `github.com/Lucas-Palomo/go-resource` | 2026-04-11 | Stable maintenance release for existing users |
 | `v2.0.0` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-11 | First stable v2 tag, later retracted because its documentation was semantically incorrect |
-| `v2.0.1` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-12 | Stable documentation-correction release for v2 |
+| `v2.0.1` | v2 | `github.com/Lucas-Palomo/go-resource/v2` | 2026-04-13 | Stable documentation-correction release for v2 |
 
 ## Module paths
 
