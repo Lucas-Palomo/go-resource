@@ -7,3 +7,5 @@ require (
 	golang.org/x/text v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+retract v2.0.0 // documentation was semantically incorrect; use v2.0.1
